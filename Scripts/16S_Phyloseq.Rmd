@@ -1,0 +1,13 @@
+---
+title: "16S Phyloseq"
+output: html_notebook
+---
+
+```{r}
+load("./Data/16S/DADA2outputs/dada2_outputs_16S_BeeBread.RData")
+```
+
+```{r}
+metadata <- read.csv("")
+```
+

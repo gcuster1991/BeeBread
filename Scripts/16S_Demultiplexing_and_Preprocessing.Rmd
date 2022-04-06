@@ -1,0 +1,108 @@
+---
+title: "Demultiplexing"
+output: html_notebook
+---
+
+```{r}
+library(dada2); packageVersion("dada2") # the dada2 pipeline
+
+library(ShortRead); packageVersion("ShortRead") # dada2 depends on this
+
+library(dplyr); packageVersion("dplyr") # for manipulating data
+
+library(tidyr); packageVersion("tidyr") # for creating the final graph at the end of the pipeline
+
+#library(Hmisc); packageVersion("Hmisc") # for creating the final graph at the end of the pipeline
+
+library(ggplot2); packageVersion("ggplot2") # for creating the final graph at the end of the pipeline
+
+library(plotly); packageVersion("plotly") # enables creation of interactive graphs, especially helpful for quality plots
+
+#if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+#BiocManager::install("UMI4Cats") # for demultiplexing in R
+```
+//Users/gordoncuster/Bioinformatics_software/idemp-master
+
+```{r}
+# Set up pathway to idemp (demultiplexing tool) and test
+idemp <- "//Users/gordoncuster/Bioinformatics_software/idemp-master/idemp" # CHANGE ME if not on microbe
+system2(idemp) # Check that idemp is in your path and you can run shell commands from R
+
+# Set up pathway to cutadapt (primer trimming tool) and test
+cutadapt <- "/Users/gordoncuster/.local/bin/bin/cutadapt" # CHANGE ME to the cutadapt path on your machine
+system2(cutadapt, args = "--version") # Run shell commands from R
+
+# Set path to shared data folder and contents
+data.fp <- ("/Users/gordoncuster/Desktop/Quick_Sync/Lopez_Uribe/16S")
+
+# List all files in shared folder to check path
+list.files(data.fp)
+## [1] "LopezUribe_BeeBread_BarcodeFile_16s.csv" 
+## [2] "LopezUribe_BeeBread_MappingFile_16s.xlsx"
+## [3] "SampleSheet.csv"                         
+## [4] "Undetermined_S0_L001_I1_001.fastq.gz"    
+## [5] "Undetermined_S0_L001_R1_001.fastq.gz"    
+## [6] "Undetermined_S0_L001_R2_001.fastq.gz"
+
+# Set file paths for barcodes file, map file, and fastqs
+    # Barcodes need to have 'N' on the end of each 12bp sequence for compatability
+barcode.fp <- file.path(data.fp, "testLopezUribe_BeeBread_Barcodes_16s.txt") # .txt file: barcode </t> sampleID
+#map.fp <- file.path(data.fp, "LopezUribe_BeeBread_Barcodes_16s.csv")
+I1.fp <- file.path(data.fp, "Undetermined_S0_L001_I1_001.fastq.gz") 
+R1.fp <- file.path(data.fp, "Undetermined_S0_L001_R1_001.fastq.gz") 
+R2.fp <- file.path(data.fp, "Undetermined_S0_L001_R2_001.fastq.gz") 
+
+project.fp <- ("/Users/gordoncuster/Desktop/Quick_Sync/Lopez_Uribe") # CHANGE ME to project directory; don't append with a "/"
+
+# Set up names of sub directories to stay organized
+preprocess.fp <- file.path(project.fp, "01_preprocess")
+    demultiplex.fp <- file.path(preprocess.fp, "demultiplexed")
+    filtN.fp <- file.path(preprocess.fp, "filtN")
+    trimmed.fp <- file.path(preprocess.fp, "trimmed")
+filter.fp <- file.path(project.fp, "02_filter") 
+table.fp <- file.path(project.fp, "03_tabletax") 
+```
+
+```{r}
+flags <- paste("-b", barcode.fp, "-I1", I1.fp, "-R1", R1.fp, "-R2", R2.fp, "-o", demultiplex.fp) 
+system2(idemp, args = flags) 
+list.files(demultiplex.fp)
+```
+```{r}
+# Change names of unassignable reads so they are not included in downstream processing
+unassigned_1 <- paste0("mv", " ", demultiplex.fp, "/Undetermined_S0_L001_R1_001.fastq.gz_unsigned.fastq.gz",
+                       " ", demultiplex.fp, "/Unassigned_reads1.fastq.gz")
+unassigned_2 <- paste0("mv", " ", demultiplex.fp, "/Undetermined_S0_L001_R2_001.fastq.gz_unsigned.fastq.gz", 
+                       " ", demultiplex.fp, "/Unassigned_reads2.fastq.gz")
+system(unassigned_1)
+system(unassigned_2)
+
+# Rename files - use gsub to get names in order!
+R1_names <- gsub(paste0(demultiplex.fp, "/Undetermined_S0_L001_R1_001.fastq.gz_"), "", 
+                 list.files(demultiplex.fp, pattern="R1", full.names = TRUE))
+file.rename(list.files(demultiplex.fp, pattern="R1", full.names = TRUE), 
+            paste0(demultiplex.fp, "/R1_", R1_names))
+##  [1] TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE
+## [15] TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE
+## [29] TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE
+## [43] TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE
+## [57] TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE
+## [71] TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE
+
+R2_names <- gsub(paste0(demultiplex.fp, "/Undetermined_S0_L001_R2_001.fastq.gz_"), "", 
+                 list.files(demultiplex.fp, pattern="R2", full.names = TRUE))
+file.rename(list.files(demultiplex.fp, pattern="R2", full.names = TRUE),
+            paste0(demultiplex.fp, "/R2_", R2_names))
+##  [1] TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE
+## [15] TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE
+## [29] TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE
+## [43] TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE
+## [57] TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE
+## [71] TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE
+```
+
+At this point all forward reads are denoted with R1 and reverse reads with R2. 
+
+
