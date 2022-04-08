@@ -4,10 +4,62 @@ output: html_notebook
 ---
 
 ```{r}
-load("./Data/16S/DADA2outputs/dada2_outputs_16S_BeeBread.RData")
+require(phyloseq)
+```
+
+
+```{r}
+
+load("/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Data/16S/DADA2outputs/dada2_outputs_16S_BeeBread.RData")
 ```
 
 ```{r}
-metadata <- read.csv("")
+metadata <- read.csv("/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Data/BB_sample-metadata.txt", sep = "\t")
+#append ".fastq.gz" to end of metadata to match sequence file names. 
+rownames(metadata) <- paste(metadata$X, ".fastq.gz", sep = "")
 ```
+
+```{r}
+#assign object type to merge into phyloseq object
+md <- sample_data(metadata)
+otu <- otu_table(seqtab.nochim, taxa_are_rows = F)
+tax_tab <- tax_table(taxa)
+#check sample names of both otu table and metadata
+sample_names(md)
+sample_names(otu)
+#since they match, you can create the phyloseq object
+bb16S_orig <- phyloseq(md, otu, tax_tab)
+```
+
+Preprocessing. Creat bacterial and archael phyloseq object
+```{r}
+#2315 bacterial taxa
+bb16S_bac <- subset_taxa(bb16S_orig, Kingdom == "Bacteria")
+#9 archaea
+bb16S_arch <- subset_taxa(bb16S_orig, Kingdom == "Archaea")
+#2 taxa did not assign to bacteria or archea
+```
+
+Check sample depths for rarefaction
+```{r}
+sort(sample_sums(bb16S_bac))
+test_bb16S_bac_rarefy <- rarefy_even_depth(bb16S_bac, sample.size = 2000, rngseed = 14, trimOTUs = T)
+#Rarefaction depth depends on the need to retain the control samples. If thery are not really needed for the design, they we can rarefy at ~20k. If we do need them, we will need to rarefy at 2k.
+
+#to move forward, we can hellinger transform and go from there.
+bb16S_bac_hellinger <- transform_sample_counts(bb16S_bac, function(x) sqrt(x / sum(x)))
+```
+
+exploratory analysis
+alpha div
+```{r}
+plot_richness(test_bb16S_bac_rarefy, x = "Region", measures = c("Shannon", "Observed", "Chao1"), color = "Region") + geom_boxplot()
+
+plot_richness(test_bb16S_bac_rarefy, x = "Treatment", measures = c("Shannon", "Observed", "Chao1"), color = "Treatment") + geom_boxplot()
+
+plot_richness(test_bb16S_bac_rarefy, x = "Region_Treatment", measures = c("Shannon", "Observed", "Chao1"), color = "Region") + geom_boxplot()
+
+```
+
+
 
