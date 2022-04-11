@@ -5,6 +5,8 @@ output: html_notebook
 
 ```{r}
 require(phyloseq)
+ library(parallelDist)
+library(ggplot2)
 ```
 
 
@@ -46,8 +48,19 @@ sort(sample_sums(bb16S_bac))
 test_bb16S_bac_rarefy <- rarefy_even_depth(bb16S_bac, sample.size = 2000, rngseed = 14, trimOTUs = T)
 #Rarefaction depth depends on the need to retain the control samples. If thery are not really needed for the design, they we can rarefy at ~20k. If we do need them, we will need to rarefy at 2k.
 
+
+#remove DilutionDTC sample. 
+bb16S_bac <- subset_samples(physeq = bb16S_bac, sample_names(bb16S_bac) != "Dilution.fastq.gz")
 #to move forward, we can hellinger transform and go from there.
 bb16S_bac_hellinger <- transform_sample_counts(bb16S_bac, function(x) sqrt(x / sum(x)))
+
+#maximum liklihood point estimates
+bb16S_bac_ML<- transform_sample_counts(bb16S_bac, function(x) x / sum(x))
+```
+Rarefaction curves
+```{#r}
+rarecurve(t(otu_table(bb16S_bac)), step=50, cex=0.5)
+rarecurve(t(otu_table(test_bb16S_bac_rarefy)), step=50, cex=0.5)
 ```
 
 exploratory analysis
@@ -57,9 +70,57 @@ plot_richness(test_bb16S_bac_rarefy, x = "Region", measures = c("Shannon", "Obse
 
 plot_richness(test_bb16S_bac_rarefy, x = "Treatment", measures = c("Shannon", "Observed", "Chao1"), color = "Treatment") + geom_boxplot()
 
+
 plot_richness(test_bb16S_bac_rarefy, x = "Region_Treatment", measures = c("Shannon", "Observed", "Chao1"), color = "Region") + geom_boxplot()
+```
+Wilcoxon tests of alpha diversity measures
+```{r}
+richness_BB16S_bac<-estimate_richness(test_bb16S_bac_rarefy, measures = c("Shannon", "Observed", "Chao1"))
+
+richness_BB16S_bac$Region <- sample_data(test_bb16S_bac_rarefy)$Region
+richness_BB16S_bac$Site <- sample_data(test_bb16S_bac_rarefy)$Site
+richness_BB16S_bac$Timepoint <- sample_data(test_bb16S_bac_rarefy)$Timepoint
+richness_BB16S_bac$Treatment <- sample_data(test_bb16S_bac_rarefy)$Treatment
+
+#non Parametric tests
+pairwise.wilcox.test(richness_BB16S_bac$Shannon, richness_BB16S_bac$Region)
+pairwise.wilcox.test(richness_BB16S_bac$Shannon, richness_BB16S_bac$Treatment)
+pairwise.wilcox.test(richness_BB16S_bac$Shannon, richness_BB16S_bac$Site)
+#Significant difference for none (i.e., controls) vs. two timepoints. I'm not sure what the controls indicate so its hard to interpret. 
+pairwise.wilcox.test(richness_BB16S_bac$Shannon, richness_BB16S_bac$Timepoint)
+
+
+pw_wc<-function(r = "Richness Dataframe", y = "Richness Metric", g = "Grouping variable to Test"){
+  print(pairwise.wilcox.test(r[,y], r[,g]))
+}
+
+
+pw_wc(r = richness_BB16S_bac, y = "Shannon", g = "Treatment")
+pw_wc(r = richness_BB16S_bac, y = "Shannon", g = "Site")
+pw_wc(r = richness_BB16S_bac, y = "Shannon", g = "Region")
+pw_wc(r = richness_BB16S_bac, y = "Shannon", g = "Timepoint")
+
 
 ```
 
 
+```{r}
+#Parametric anova
+mod <- aov(formula = Shannon ~ Treatment, data = richness_BB16S_bac)
+plot(mod$residuals)
+shapiro.test(mod$residuals)
+summary(mod)
+TukeyHSD(mod, which = "Treatment")
+
+```
+
+
+```{r}
+sd_adonis <- data.frame(sample_data(bb16S_bac_ML))
+tab_adonis <- data.frame(otu_table(bb16S_bac_ML))
+dist <- parallelDist(as.matrix(tab_adonis), method = "bray")
+adonis(dist~Treatment, data = sd_adonis, permutations = 1000)
+ord_cap<-ordinate(physeq = bb16S_bac_ML, method = "CAP", distance = "bray", formula = ~ Region)
+plot_ordination(physeq = bb16S_bac_ML, ordination = ord_cap, type = "Samples", color = "Region", shape = "Treatment" )
+```
 
