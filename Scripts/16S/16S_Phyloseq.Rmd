@@ -7,6 +7,14 @@ output: html_notebook
 require(phyloseq)
  require(parallelDist)
 require(ggplot2)
+  require(randomForest)
+require(Boruta)
+  require(phyloseq)
+require(stats)
+  require(dplyr)
+require(readr)
+  require(pheatmap)
+require(tidyverse)
 ```
 
 
@@ -31,14 +39,17 @@ sample_names(md)
 sample_names(otu)
 #since they match, you can create the phyloseq object
 bb16S_orig <- phyloseq(md, otu, tax_tab)
+
+#remove chloroplast
+bb16S_orig_nc <- subset_taxa(bb16S_orig, Class != "Chloroplast")
 ```
 
 Preprocessing. Creat bacterial and archael phyloseq object
 ```{r}
-#2315 bacterial taxa
-bb16S_bac <- subset_taxa(bb16S_orig, Kingdom == "Bacteria")
+#2257 bacterial taxa
+bb16S_bac <- subset_taxa(bb16S_orig_nc, Kingdom == "Bacteria")
 #9 archaea
-bb16S_arch <- subset_taxa(bb16S_orig, Kingdom == "Archaea")
+bb16S_arch <- subset_taxa(bb16S_orig_nc, Kingdom == "Archaea")
 #2 taxa did not assign to bacteria or archea
 ```
 
@@ -49,7 +60,7 @@ ps_wo_control <- subset_samples(bb16S_bac, Treatment != "none")
 
 Examine rarefaction curves
 ```{r}
-rarecurve(otu_table(bb16S_bac), step=50, cex=0.5)
+rarecurve(otu_table(ps_wo_control), step=50, cex=0.5)
 ```
 Plateau in most samples under the 5k read mark. 
 
@@ -208,7 +219,6 @@ adonis(dist ~  Region * Treatment, data= sd_adonis, strata = sd_adonis$Region, p
 adonis(dist ~  Treatment * Region, data= sd_adonis, strata = sd_adonis$Region, permutations = 10000)
 adonis(dist ~  Region * Treatment, data= sd_adonis, permutations = 10000)
 adonis(dist ~   Treatment * Region, data= sd_adonis, permutations = 10000)
-
 ```
 
 No effect of treatment (r2 < 0.05), even when the differences among regions were controlled for or terms were reordered. This suggests that the miticide has limited effect on bacterial community composition. Region remains a significant predictor within each time point and explains the majority of the variation. 
@@ -236,5 +246,71 @@ plot_ordination(physeq = bb16S_bac_ML, ordination = ord_cap, type = "Samples", c
 #NMDS
 ord_nmds<-ordinate(physeq = bb16S_bac_ML, method = "NMDS", distance = "bray", k = 3, trymax = 1000)
 plot_ordination(physeq = bb16S_bac_ML, ordination = ord_nmds, type = "Samples", color = "Region", shape = "Timepoint" ) + theme_classic()
+```
+
+#indicator taxa
+specify function
+```{r}
+baruta_phyloseq<-function(physeq = "Phyloseq object", GroupingVar = "Grouping variable"){
+  #prep data
+  df <- data.frame((otu_table(physeq)))
+  md <- data.frame(sample_data(physeq))
+  tax <- data.frame(tax_table(physeq))
+  rownames(tax)<-str_replace(rownames(tax), pattern = "[[.]]", replacement = "=")
+  #run simper
+ 
+                  boruta_layer <- Boruta(df , factor(md[,GroupingVar]), 
+                      doTrace = 1, ntree = 1000, maxRuns = 1000) # adjust factor!!!!
+
+                  B1 <- data.frame(boruta_layer$finalDecision)  
+                  B2 <- data.frame(apply(boruta_layer$ImpHistory, 2, mean))
+                  names(B1) <- "Layer_decision"
+                  names(B2) <- "Layer_importance"
+                  BB1 <- merge(B1, B2, by="row.names", all.x=TRUE)
+                  #sorting the results
+                  BB1_sort <- BB1[order(BB1$Layer_importance, decreasing = TRUE),] ## this is to give an overview and choose cutoff
+                  #picking up important with cutoff
+                  BB1_sort_cutoff <- filter(BB1, Layer_importance >= 2) ## number is your importance cutoff
+
+                        #picking up OTUs from full otutable
+                        signOTU <- as.matrix(BB1_sort_cutoff$Row.names) #vector with OTUs
+                        signOTU<-str_replace(signOTU, pattern = "[[.]]", replacement = ".")
+                        #my_taxa
+                        tax$OTU <-rownames(tax)
+                        signOTU<-str_replace(signOTU, pattern = "[[.]]", replacement = "=")
+                        signmy_taxa <- filter(tax, OTU %in% signOTU) 
+                        signmy_taxa <- as.data.frame(signmy_taxa)
+                        taxa_keep<-signmy_taxa$OTU
+return(taxa_keep)
+}
+```
+
+```{r}
+baruta_region_indicators<-baruta_phyloseq(physeq = bb16S_bac_ML, GroupingVar = "Region")
+
+baruta_region_indicators_ps_object <- subset_taxa(bb16S_bac_ML, taxa_names(bb16S_bac_ML) %in% baruta_region_indicators)
+```
+
+https://jokergoo.github.io/ComplexHeatmap-reference/book/
+```{r}
+library(micrUBIfuns)
+baruta_region_indicators_ps_object_tax <- tax_table(baruta_region_indicators_ps_object)
+baruta_region_indicators_ps_object_tax<-data.frame(baruta_region_indicators_ps_object_tax)
+
+baruta_region_indicators_ps_object_tax$Class[is.na(baruta_region_indicators_ps_object_tax$Class)]<-"Unknown"
+baruta_region_indicators_ps_object_tax$Family[is.na(baruta_region_indicators_ps_object_tax$Family)]<-"Unknown"
+
+baruta_region_indicators_ps_object@tax_table <- tax_table(baruta_region_indicators_ps_object_tax)
+
+
+fam_names<-data.frame(gsub("column", "", tax_table(baruta_region_indicators_ps_object)[,3]))
+
+library(circlize)
+
+col_fun = colorRamp2(c(-2, 0, 2), c("green", "white", "red"))
+micrUBIfuns::plot_taxa_heatmap(baruta_region_indicators_ps_object, rm_na = F,scale_by = "taxa", cluster_rows=F, cluster_columns = T ,column_labels = tax_table(baruta_region_indicators_ps_object)[,3], row_dend_reorder =TRUE, col= col_fun)
+
+#based off of initial figure, it looks like there is a pattern for every other row, indicating differences in time. We might want to split by time point and then repeat anaysis.  
+
 ```
 
