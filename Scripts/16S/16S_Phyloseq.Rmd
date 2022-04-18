@@ -5,8 +5,8 @@ output: html_notebook
 
 ```{r}
 require(phyloseq)
- library(parallelDist)
-library(ggplot2)
+ require(parallelDist)
+require(ggplot2)
 ```
 
 
@@ -42,85 +42,199 @@ bb16S_arch <- subset_taxa(bb16S_orig, Kingdom == "Archaea")
 #2 taxa did not assign to bacteria or archea
 ```
 
-Check sample depths for rarefaction
+Remove control samples as there is only as single replicate of each. 
 ```{r}
-sort(sample_sums(bb16S_bac))
-test_bb16S_bac_rarefy <- rarefy_even_depth(bb16S_bac, sample.size = 2000, rngseed = 14, trimOTUs = T)
-#Rarefaction depth depends on the need to retain the control samples. If thery are not really needed for the design, they we can rarefy at ~20k. If we do need them, we will need to rarefy at 2k.
+ps_wo_control <- subset_samples(bb16S_bac, Treatment != "none")
+```
 
+Examine rarefaction curves
+```{r}
+rarecurve(otu_table(bb16S_bac), step=50, cex=0.5)
+```
+Plateau in most samples under the 5k read mark. 
 
-#remove DilutionDTC sample. 
-bb16S_bac <- subset_samples(physeq = bb16S_bac, sample_names(bb16S_bac) != "Dilution.fastq.gz")
-#to move forward, we can hellinger transform and go from there.
-bb16S_bac_hellinger <- transform_sample_counts(bb16S_bac, function(x) sqrt(x / sum(x)))
+Check sample depths for rarefaction. Minimum sample depth is a bit over 21k reads, so we will rarefy at 20k.  
+```{r}
+sort(sample_sums(ps_wo_control))
+bb16S_bac_rarefy <- rarefy_even_depth(ps_wo_control, sample.size = 20000, rngseed = 14, trimOTUs = T)
+
+#remove DilutionDTC sample. #remove DilutionDTC sample. This is now done above when removing control samples.
+#bb16S_bac <- subset_samples(physeq = bb16S_bac, sample_names(bb16S_bac) != "Dilution.fastq.gz")
+
+#To move forward, we can hellinger transform and go from there.
+bb16S_bac_hellinger <- transform_sample_counts(ps_wo_control, function(x) sqrt(x / sum(x)))
 
 #maximum liklihood point estimates
-bb16S_bac_ML<- transform_sample_counts(bb16S_bac, function(x) x / sum(x))
-```
-Rarefaction curves
-```{#r}
-rarecurve(t(otu_table(bb16S_bac)), step=50, cex=0.5)
-rarecurve(t(otu_table(test_bb16S_bac_rarefy)), step=50, cex=0.5)
+bb16S_bac_ML<- transform_sample_counts(ps_wo_control, function(x) x / sum(x))
 ```
 
-exploratory analysis
-alpha div
+#Exploratory analysis of Alpha diversity
+
+Plots of Alpha Diversity by Region, Treatment, 
 ```{r}
-plot_richness(test_bb16S_bac_rarefy, x = "Region", measures = c("Shannon", "Observed", "Chao1"), color = "Region") + geom_boxplot()
+plot_richness(bb16S_bac_rarefy, x = "Region", measures = c("Shannon", "Observed", "Chao1"), color = "Region") + geom_boxplot() + ggtitle("Region")
 
-plot_richness(test_bb16S_bac_rarefy, x = "Treatment", measures = c("Shannon", "Observed", "Chao1"), color = "Treatment") + geom_boxplot()
+plot_richness(bb16S_bac_rarefy, x = "Treatment", measures = c("Shannon", "Observed", "Chao1"), color = "Treatment") + geom_boxplot() + ggtitle("Treatment")
 
+plot_richness(bb16S_bac_rarefy, x = "Timepoint", measures = c("Shannon", "Observed", "Chao1"), color = "Timepoint") + geom_boxplot() + ggtitle("Timepoint")
 
-plot_richness(test_bb16S_bac_rarefy, x = "Region_Treatment", measures = c("Shannon", "Observed", "Chao1"), color = "Region") + geom_boxplot()
+plot_richness(bb16S_bac_rarefy, x = "Region_Treatment", measures = c("Shannon", "Observed", "Chao1"), color = "Region_Treatment") + geom_boxplot() + ggtitle("Region_Treatment")
+
+plot_richness(bb16S_bac_rarefy, x = "Region_Timepoint", measures = c("Shannon", "Observed", "Chao1"), color = "Region_Timepoint") + geom_boxplot() + ggtitle("Region_Timepoint")
+
+plot_richness(bb16S_bac_rarefy, x = "Treatment_Timepoint", measures = c("Shannon", "Observed", "Chao1"), color = "Treatment_Timepoint") + geom_boxplot() + ggtitle("Treatment_Timepoint")
 ```
-Wilcoxon tests of alpha diversity measures
+Statistical testing of alpha diversity metrics with Wilcoxon tests. 
 ```{r}
-richness_BB16S_bac<-estimate_richness(test_bb16S_bac_rarefy, measures = c("Shannon", "Observed", "Chao1"))
+#create alpha diversity table and prep data to include grouping columns
+richness_BB16S_bac<-estimate_richness(bb16S_bac_rarefy, measures = c("Shannon", "Observed", "Chao1"))
 
 richness_BB16S_bac$Region <- sample_data(test_bb16S_bac_rarefy)$Region
 richness_BB16S_bac$Site <- sample_data(test_bb16S_bac_rarefy)$Site
 richness_BB16S_bac$Timepoint <- sample_data(test_bb16S_bac_rarefy)$Timepoint
 richness_BB16S_bac$Treatment <- sample_data(test_bb16S_bac_rarefy)$Treatment
-
-#non Parametric tests
-pairwise.wilcox.test(richness_BB16S_bac$Shannon, richness_BB16S_bac$Region)
-pairwise.wilcox.test(richness_BB16S_bac$Shannon, richness_BB16S_bac$Treatment)
-pairwise.wilcox.test(richness_BB16S_bac$Shannon, richness_BB16S_bac$Site)
-#Significant difference for none (i.e., controls) vs. two timepoints. I'm not sure what the controls indicate so its hard to interpret. 
-pairwise.wilcox.test(richness_BB16S_bac$Shannon, richness_BB16S_bac$Timepoint)
+#combo columns
+richness_BB16S_bac$Region_Treatment <- sample_data(test_bb16S_bac_rarefy)$Region_Treatment
+richness_BB16S_bac$Region_Timepoint <- sample_data(test_bb16S_bac_rarefy)$Region_Timepoint
+richness_BB16S_bac$Treatment_Timepoint <- sample_data(test_bb16S_bac_rarefy)$Treatment_Timepoint
 
 
-pw_wc<-function(r = "Richness Dataframe", y = "Richness Metric", g = "Grouping variable to Test"){
-  print(pairwise.wilcox.test(r[,y], r[,g]))
-}
-
-
-pw_wc(r = richness_BB16S_bac, y = "Shannon", g = "Treatment")
-pw_wc(r = richness_BB16S_bac, y = "Shannon", g = "Site")
-pw_wc(r = richness_BB16S_bac, y = "Shannon", g = "Region")
-pw_wc(r = richness_BB16S_bac, y = "Shannon", g = "Timepoint")
-
-
+#region and site appear to be associated so I will drop site for this exploratory analysis. 
+chisq.test(richness_BB16S_bac$Region, richness_BB16S_bac$Site)
 ```
 
-
+Tests of Shannon diversity
 ```{r}
-#Parametric anova
-mod <- aov(formula = Shannon ~ Treatment, data = richness_BB16S_bac)
-plot(mod$residuals)
+#ANOVA and Tukey's PW comparisons
+#Run a full 4 way ANOVA with interactions
+mod<-aov(Shannon ~ Region * Treatment * Timepoint, data = richness_BB16S_bac)
+#residuals look fine. 
 shapiro.test(mod$residuals)
 summary(mod)
-TukeyHSD(mod, which = "Treatment")
+#Summary of model shows region to be only lower order significant predictor.
+#interaction term of region x timepoint as well. 
+
+#CP has lower Shannon diversity than both NE and SE. WV has lower Shannon diversity than both NE and SE. 
+TukeyHSD(mod, "Region")
+plot(TukeyHSD(mod, "Region"), las=1, cex.axis = 0.4)
+
+#Several significant pairwise differences to accompany the significant global test for interaction term. 
+TukeyHSD(mod, "Region:Timepoint")
+plot(TukeyHSD(mod, "Region:Timepoint"), las=1, cex.axis = 0.4)
+```
+Tests of Chao 1 - emphasizes importance of rare taxa
+```{r}
+#ANOVA and Tukey's PW comparisons
+#Run a full 4 way ANOVA with interactions
+mod<-aov(Chao1 ~ Region * Treatment * Timepoint, data = richness_BB16S_bac)
+#residuals look fine. 
+shapiro.test(mod$residuals)
+summary(mod)
+#No significant effects of our predictors on Chao1 
+```
+
+Tests of Observed - unique taxa in a sample. 
+```{r}
+#ANOVA and Tukey's PW comparisons
+#Run a full 4 way ANOVA with interactions
+mod<-aov(Observed ~ Region * Treatment * Timepoint, data = richness_BB16S_bac)
+#residuals look fine. 
+shapiro.test(mod$residuals)
+summary(mod)
+#Summary of model shows no lower order significant predictor. Only Region * Timepoint interaction. 
+
+#No significant pairwise differences
+TukeyHSD(mod, "Region:Timepoint")
+plot(TukeyHSD(mod, "Region:Timepoint"), las=1, cex.axis = 0.4)
+```
+Summary of alpha diversity: Rarefying at 20k reads sufficiently captures the diversity of each sample, as demonstrated by the plateau in our rarefaction curves. Region is only a significant predictor for Shannon diversity. Region * timepoint interaction is present for both Shannon diversity and richness (simple count of unique taxa in a sample). 
+
+
+
+#multivaraite exploratory analysis
+Initial pass with maximum likelihood point estimates. 
+
+https://stats.stackexchange.com/questions/350462/can-you-perform-a-permanova-analysis-on-nested-data/350504#350504?newreg=8e389dc237c54d87ab240486b8b0fe33
+https://stats.stackexchange.com/questions/188519/adonis-in-vegan-order-of-variables-or-use-of-strata?noredirect=1&lq=1
+https://stats.stackexchange.com/questions/459407/permanova-outputs-with-or-without-random-factor
+https://ichthyology.usm.edu/courses/multivariate/feb_7.pdf 
+
+```{r}
+#extract data from phyloseq object
+sd_adonis <- data.frame(sample_data(bb16S_bac_ML))
+sd_adonis$Treatment <-as.factor(sd_adonis$Treatment)
+sd_adonis$Region <-as.factor(sd_adonis$Region)
+tab_adonis <- data.frame(otu_table(bb16S_bac_ML))
+dist <- parallelDist(as.matrix(tab_adonis), method = "bray")
+
+#this model explores the effect of Region, treatment and time point and restricts permutations to time points. 
+adonis(dist ~  Region * Treatment * Timepoint, data= sd_adonis, permutations = 10000)
+adonis(dist ~  Region * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Timepoint, permutations = 10000)
+adonis(dist ~  Region * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Region, permutations = 10000)
+#another way to specify the same model using adonis2. Both provide same results.
+perm <- how(nperm = 10000)
+setBlocks(perm) <- with(sd_adonis, Timepoint)
+adonis2(dist ~  Region * Treatment * Timepoint, data= sd_adonis, permutations = perm, by = "terms")
+```
+Based on results, region is the main determinant of microbiome composition (r2 of 0.42). Time point is also significant but explains much less of the variation (r2 of 0.063). Next, I will split by time point and examine the effect of each treatment while controlling for regional effects using the strata argument (strata = region). 
+
+Split by time point as these are before and after treatment.
+```{r}
+#split then extract info from each
+#pre-treatment samples
+bb16S_bac_ML_A <- subset_samples(bb16S_bac_ML, Timepoint == "A")
+#post-treatment samples
+bb16S_bac_ML_B <- subset_samples(bb16S_bac_ML, Timepoint == "B")
+
+
+#extract data from phyloseq object for pre-treatment
+sd_adonis <- data.frame(sample_data(bb16S_bac_ML_A))
+sd_adonis$Treatment <-as.factor(sd_adonis$Treatment)
+sd_adonis$Region <-as.factor(sd_adonis$Region)
+tab_adonis <- data.frame(otu_table(bb16S_bac_ML_A))
+dist <- parallelDist(as.matrix(tab_adonis), method = "bray")
+adonis(dist ~  Region * Treatment, data= sd_adonis, strata = sd_adonis$Region, permutations = 10000)
+adonis(dist ~  Treatment * Region, data= sd_adonis, strata = sd_adonis$Region, permutations = 10000)
+adonis(dist ~  Region * Treatment, data= sd_adonis, permutations = 10000)
+adonis(dist ~   Treatment * Region, data= sd_adonis, permutations = 10000)
+
+#extract data from phyloseq object for post-treatment
+sd_adonis <- data.frame(sample_data(bb16S_bac_ML_B))
+sd_adonis$Treatment <-as.factor(sd_adonis$Treatment)
+sd_adonis$Region <-as.factor(sd_adonis$Region)
+tab_adonis <- data.frame(otu_table(bb16S_bac_ML_B))
+dist <- parallelDist(as.matrix(tab_adonis), method = "bray")
+adonis(dist ~  Region * Treatment, data= sd_adonis, strata = sd_adonis$Region, permutations = 10000)
+adonis(dist ~  Treatment * Region, data= sd_adonis, strata = sd_adonis$Region, permutations = 10000)
+adonis(dist ~  Region * Treatment, data= sd_adonis, permutations = 10000)
+adonis(dist ~   Treatment * Region, data= sd_adonis, permutations = 10000)
 
 ```
 
+No effect of treatment (r2 < 0.05), even when the differences among regions were controlled for or terms were reordered. This suggests that the miticide has limited effect on bacterial community composition. Region remains a significant predictor within each time point and explains the majority of the variation. 
 
+
+Visualize ordinations using two methods. CAP and NMDS
 ```{r}
+#extract data from phyloseq object and run cca using vegan to examine significance of constraining variables
 sd_adonis <- data.frame(sample_data(bb16S_bac_ML))
+sd_adonis$Treatment <-as.factor(sd_adonis$Treatment)
+sd_adonis$Region <-as.factor(sd_adonis$Region)
 tab_adonis <- data.frame(otu_table(bb16S_bac_ML))
-dist <- parallelDist(as.matrix(tab_adonis), method = "bray")
-adonis(dist~Treatment, data = sd_adonis, permutations = 1000)
-ord_cap<-ordinate(physeq = bb16S_bac_ML, method = "CAP", distance = "bray", formula = ~ Region)
-plot_ordination(physeq = bb16S_bac_ML, ordination = ord_cap, type = "Samples", color = "Region", shape = "Treatment" )
+#run model and check global significance using anova.cca.
+cca_mod<-cca(tab_adonis ~ Region + Timepoint + Treatment, sd_adonis)
+anova.cca(cca_mod)
+#significant global model so lets look at individual parameters
+drop1(cca_mod, test = "perm", permutations = 100)
+#Region and time point are significant but treatment is not. We will not include treatment in our constrained ordination
+
+#CAP
+ord_cap<-ordinate(physeq = bb16S_bac_ML, method = "CAP", distance = "bray", formula = ~  Region + Timepoint )
+plot_ordination(physeq = bb16S_bac_ML, ordination = ord_cap, type = "Samples", color = "Region", shape = "Timepoint" ) + theme_classic()
+#strongest grouping by region. Time point also has a smaller effect and the groupings are not nearly as clear. 
+
+#NMDS
+ord_nmds<-ordinate(physeq = bb16S_bac_ML, method = "NMDS", distance = "bray", k = 3, trymax = 1000)
+plot_ordination(physeq = bb16S_bac_ML, ordination = ord_nmds, type = "Samples", color = "Region", shape = "Timepoint" ) + theme_classic()
 ```
 
