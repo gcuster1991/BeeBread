@@ -330,13 +330,10 @@ baruta_Site_indicators_ps_object_tax$Class[is.na(baruta_Site_indicators_ps_objec
 baruta_Site_indicators_ps_object_tax$Family[is.na(baruta_Site_indicators_ps_object_tax$Family)]<-"Unknown"
 
 baruta_Site_indicators_ps_object@tax_table <- tax_table(baruta_Site_indicators_ps_object_tax)
-
-
 fam_names<-data.frame(gsub("column", "", tax_table(baruta_Site_indicators_ps_object)[,3]))
 
-library(circlize)
 
-col_fun = colorRamp2(c(-2, 0, 2), c("green", "white", "red"))
+col_fun <- colorRamp2(c(-2, 0, 2), c("green", "white", "red"))
 #heatmap with taxa names
 micrUBIfuns::plot_taxa_heatmap(baruta_Site_indicators_ps_object, rm_na = F,scale_by = "taxa", cluster_rows=F, cluster_columns = T ,column_labels = tax_table(baruta_Site_indicators_ps_object)[,4], row_dend_reorder =TRUE, col= col_fun)
 #heatmap with otuIDs
@@ -359,12 +356,8 @@ baruta_Site_indicators_ps_object_tax_A$Class[is.na(baruta_Site_indicators_ps_obj
 baruta_Site_indicators_ps_object_tax_A$Family[is.na(baruta_Site_indicators_ps_object_tax_A$Family)]<-"Unknown"
 
 baruta_Site_indicators_ps_object_A@tax_table <- tax_table(baruta_Site_indicators_ps_object_tax_A)
-
-
 fam_names<-data.frame(gsub("column", "", tax_table(baruta_Site_indicators_ps_object_A)[,3]))
 
-
-col_fun = colorRamp2(c(-2, 0, 2), c("green", "white", "red"))
 #heatmap with taxa names
 micrUBIfuns::plot_taxa_heatmap(baruta_Site_indicators_ps_object_A, rm_na = F,scale_by = "taxa", cluster_rows=F, cluster_columns = T ,column_labels = tax_table(baruta_Site_indicators_ps_object_A)[,4], row_dend_reorder =TRUE, col= col_fun)
 #heatmap with otuIDs
@@ -388,14 +381,39 @@ baruta_Site_indicators_ps_object_B@tax_table <- tax_table(baruta_Site_indicators
 
 fam_names<-data.frame(gsub("column", "", tax_table(baruta_Site_indicators_ps_object_B)[,3]))
 
-
-col_fun = colorRamp2(c(-2, 0, 2), c("green", "white", "red"))
 #heatmap with taxa names
 micrUBIfuns::plot_taxa_heatmap(baruta_Site_indicators_ps_object_B, rm_na = F,scale_by = "taxa", cluster_rows=F, cluster_columns = T ,column_labels = tax_table(baruta_Site_indicators_ps_object_B)[,4], row_dend_reorder =TRUE, col= col_fun)
 #heatmap with OTUids
 micrUBIfuns::plot_taxa_heatmap(baruta_Site_indicators_ps_object_B, rm_na = F,scale_by = "taxa", cluster_rows=F, cluster_columns = T ,column_labels = taxa_names(baruta_Site_indicators_ps_object_B), row_dend_reorder =TRUE, col= col_fun)
 ```
+
+Examine taxa driving differences among treatments post application
 ```{r}
-plot_tree(baruta_Site_indicators_ps_object, color="Site", shape = "Timepoint", size = "abundance", label.tips = "taxa_names")
+
+#post-treatment samples
+bb16S_bac_ML_B <- subset_samples(bb16S_bac_ML, Timepoint == "B")
+baruta_Site_indicators_B<-baruta_phyloseq(physeq = bb16S_bac_ML_B, GroupingVar = "Treatment")
+baruta_Site_indicators_ps_object_B <- subset_taxa(bb16S_bac_ML_B, taxa_names(bb16S_bac_ML_B) %in% baruta_Site_indicators_B)
+
+baruta_Site_indicators_ps_object_tax_B <- tax_table(baruta_Site_indicators_ps_object_B)
+baruta_Site_indicators_ps_object_tax_B<-data.frame(baruta_Site_indicators_ps_object_tax_B)
+baruta_Site_indicators_ps_object_tax_B$Class[is.na(baruta_Site_indicators_ps_object_tax_B$Class)]<-"Unknown"
+baruta_Site_indicators_ps_object_tax_B$Family[is.na(baruta_Site_indicators_ps_object_tax_B$Family)]<-"Unknown"
+
+baruta_Site_indicators_ps_object_B@tax_table <- tax_table(baruta_Site_indicators_ps_object_tax_B)
+
+
+fam_names<-data.frame(gsub("column", "", tax_table(baruta_Site_indicators_ps_object_B)[,3]))
+
+#heatmap with taxa names
+micrUBIfuns::plot_taxa_heatmap(baruta_Site_indicators_ps_object_B, rm_na = F,scale_by = "taxa", cluster_rows=F, cluster_columns = T ,column_labels = tax_table(baruta_Site_indicators_ps_object_B)[,4], row_dend_reorder =TRUE, col= col_fun)
+#heatmap with OTUids
+micrUBIfuns::plot_taxa_heatmap(baruta_Site_indicators_ps_object_B, rm_na = F,scale_by = "taxa", cluster_rows=F, cluster_columns = T ,column_labels = taxa_names(baruta_Site_indicators_ps_object_B), row_dend_reorder =TRUE, col= col_fun)
+```
+
+
+
+```{r}
+plot_tree(baruta_Site_indicators_ps_object, color="Genus", shape = "Timepoint", size = "abundance", label.tips = "taxa_names")
 ```
 
