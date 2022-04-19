@@ -2,7 +2,7 @@
 title: "16S Phyloseq"
 output: html_notebook
 ---
-
+Load required packages.
 ```{r}
 require(phyloseq)
  require(parallelDist)
@@ -15,42 +15,56 @@ require(stats)
 require(readr)
   require(pheatmap)
 require(tidyverse)
+  require(micrUBIfuns)
+require(circlize)
 ```
 
-
+Load necessary files from Dada2 processing script. 
 ```{r}
-
-load("/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Data/16S/DADA2outputs/dada2_outputs_16S_BeeBread.RData")
+load("/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Data/16S/DADA2outputs/dada2_outputs_16S_BeeBread_wtree.RData")
 ```
 
+Read in metadata and rename based sample s
 ```{r}
 metadata <- read.csv("/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Data/BB_sample-metadata.txt", sep = "\t")
 #append ".fastq.gz" to end of metadata to match sequence file names. 
-rownames(metadata) <- paste(metadata$X, ".fastq.gz", sep = "")
+rownames(metadata) <- metadata$X
+metadata$Region_Site <- paste( metadata$Region, metadata$Site, sep = "")
 ```
 
+Convert files to correct format for phyloseq object and then rename samples in OTU table to match the  format of the metadata file. Create phyloseq object and root phylogenetic tree for usage with distance metrics (e.g., Unifrac). 
 ```{r}
 #assign object type to merge into phyloseq object
 md <- sample_data(metadata)
 otu <- otu_table(seqtab.nochim, taxa_are_rows = F)
 tax_tab <- tax_table(taxa)
 #check sample names of both otu table and metadata
-sample_names(md)
-sample_names(otu)
+#sample_names(md) <- str_split(sample_names(md), pattern = ".fastq.gz", simplify = T) [,1]
+sample_names(otu) <- str_split(sample_names(otu), pattern = ".fastq.gz", simplify = T) [,1]
 #since they match, you can create the phyloseq object
-bb16S_orig <- phyloseq(md, otu, tax_tab)
+bb16S_orig <- phyloseq(md, otu, tax_tab, fitGTR$tree)
 
-#remove chloroplast
-bb16S_orig_nc <- subset_taxa(bb16S_orig, Class != "Chloroplast")
+#root tree 
+set.seed(11)
+phy_tree(bb16S_orig) <- root(phy_tree(bb16S_orig), sample(taxa_names(bb16S_orig), 1), resolve.root = TRUE)
+is.rooted(phy_tree(bb16S_orig))
 ```
 
-Preprocessing. Creat bacterial and archael phyloseq object
+Pre-processing. Rename OTU ids to something more managable. Create bacterial and archael phyloseq objects, but first we remove Chloroplasts. 
 ```{r}
-#2257 bacterial taxa
+#Extract original IDs for future reference. 
+seq_df_w_OTUID <- data.frame(OTUID = 1:ntaxa(bb16S_orig), Sequence = taxa_names(bb16S_orig))
+taxa_names(bb16S_orig) <- paste("OTU_" , 1:ntaxa(bb16S_orig), sep = "")
+
+#remove chloroplast
+#60 chloroplast taxa
+bb16S_orig_nc <- subset_taxa(bb16S_orig, Class != "Chloroplast")
+
+#2257 bacterial taxa - 9 non-bacteria removed. 
 bb16S_bac <- subset_taxa(bb16S_orig_nc, Kingdom == "Bacteria")
 #9 archaea
 bb16S_arch <- subset_taxa(bb16S_orig_nc, Kingdom == "Archaea")
-#2 taxa did not assign to bacteria or archea
+
 ```
 
 Remove control samples as there is only as single replicate of each. 
@@ -58,19 +72,17 @@ Remove control samples as there is only as single replicate of each.
 ps_wo_control <- subset_samples(bb16S_bac, Treatment != "none")
 ```
 
-Examine rarefaction curves
+Examine rarefaction curves. Plateau in most samples under the 5k read mark. 
 ```{r}
 rarecurve(otu_table(ps_wo_control), step=50, cex=0.5)
 ```
-Plateau in most samples under the 5k read mark. 
 
-Check sample depths for rarefaction. Minimum sample depth is a bit over 21k reads, so we will rarefy at 20k.  
+First, check sample depths for rarefaction. Minimum sample depth is a bit over 21k reads, so we will rarefy at 20k.  
 ```{r}
+set.seed(11)
 sort(sample_sums(ps_wo_control))
 bb16S_bac_rarefy <- rarefy_even_depth(ps_wo_control, sample.size = 20000, rngseed = 14, trimOTUs = T)
-
-#remove DilutionDTC sample. #remove DilutionDTC sample. This is now done above when removing control samples.
-#bb16S_bac <- subset_samples(physeq = bb16S_bac, sample_names(bb16S_bac) != "Dilution.fastq.gz")
+#300 otus were removed during rarefaction. 
 
 #To move forward, we can hellinger transform and go from there.
 bb16S_bac_hellinger <- transform_sample_counts(ps_wo_control, function(x) sqrt(x / sum(x)))
@@ -81,7 +93,7 @@ bb16S_bac_ML<- transform_sample_counts(ps_wo_control, function(x) x / sum(x))
 
 #Exploratory analysis of Alpha diversity
 
-Plots of Alpha Diversity by Region, Treatment, 
+Plots of Alpha Diversity by region, treatment, timepoint, and the combinations. 
 ```{r}
 plot_richness(bb16S_bac_rarefy, x = "Region", measures = c("Shannon", "Observed", "Chao1"), color = "Region") + geom_boxplot() + ggtitle("Region")
 
@@ -89,76 +101,89 @@ plot_richness(bb16S_bac_rarefy, x = "Treatment", measures = c("Shannon", "Observ
 
 plot_richness(bb16S_bac_rarefy, x = "Timepoint", measures = c("Shannon", "Observed", "Chao1"), color = "Timepoint") + geom_boxplot() + ggtitle("Timepoint")
 
+plot_richness(bb16S_bac_rarefy, x = "Site", measures = c("Shannon", "Observed", "Chao1"), color = "Site") + geom_boxplot() + ggtitle("Site")
+
 plot_richness(bb16S_bac_rarefy, x = "Region_Treatment", measures = c("Shannon", "Observed", "Chao1"), color = "Region_Treatment") + geom_boxplot() + ggtitle("Region_Treatment")
+
+plot_richness(bb16S_bac_rarefy, x = "Region_Site", measures = c("Shannon", "Observed", "Chao1"), color = "Region_Site") + geom_boxplot() + ggtitle("Region_site")
 
 plot_richness(bb16S_bac_rarefy, x = "Region_Timepoint", measures = c("Shannon", "Observed", "Chao1"), color = "Region_Timepoint") + geom_boxplot() + ggtitle("Region_Timepoint")
 
 plot_richness(bb16S_bac_rarefy, x = "Treatment_Timepoint", measures = c("Shannon", "Observed", "Chao1"), color = "Treatment_Timepoint") + geom_boxplot() + ggtitle("Treatment_Timepoint")
 ```
-Statistical testing of alpha diversity metrics with Wilcoxon tests. 
+Statistical testing of alpha diversity metrics. Using ANOVA framework and chekcing for assumpiton of normality and correlation in predictors.  
 ```{r}
 #create alpha diversity table and prep data to include grouping columns
 richness_BB16S_bac<-estimate_richness(bb16S_bac_rarefy, measures = c("Shannon", "Observed", "Chao1"))
 
-richness_BB16S_bac$Region <- sample_data(test_bb16S_bac_rarefy)$Region
-richness_BB16S_bac$Site <- sample_data(test_bb16S_bac_rarefy)$Site
-richness_BB16S_bac$Timepoint <- sample_data(test_bb16S_bac_rarefy)$Timepoint
-richness_BB16S_bac$Treatment <- sample_data(test_bb16S_bac_rarefy)$Treatment
+richness_BB16S_bac$Region <- sample_data(bb16S_bac_rarefy)$Region
+richness_BB16S_bac$Site <- sample_data(bb16S_bac_rarefy)$Site
+richness_BB16S_bac$Timepoint <- sample_data(bb16S_bac_rarefy)$Timepoint
+richness_BB16S_bac$Treatment <- sample_data(bb16S_bac_rarefy)$Treatment
 #combo columns
-richness_BB16S_bac$Region_Treatment <- sample_data(test_bb16S_bac_rarefy)$Region_Treatment
-richness_BB16S_bac$Region_Timepoint <- sample_data(test_bb16S_bac_rarefy)$Region_Timepoint
-richness_BB16S_bac$Treatment_Timepoint <- sample_data(test_bb16S_bac_rarefy)$Treatment_Timepoint
+richness_BB16S_bac$Region_Treatment <- sample_data(bb16S_bac_rarefy)$Region_Treatment
+richness_BB16S_bac$Region_Site <- sample_data(bb16S_bac_rarefy)$Region_Site
+richness_BB16S_bac$Region_Timepoint <- sample_data(bb16S_bac_rarefy)$Region_Timepoint
+richness_BB16S_bac$Treatment_Timepoint <- sample_data(bb16S_bac_rarefy)$Treatment_Timepoint
 
 
-#region and site appear to be associated so I will drop site for this exploratory analysis. 
+#region and site appear to be associated so I will drop Region for this exploratory analysis. We can revisit if we decide Region is a more accurate predictor.  
 chisq.test(richness_BB16S_bac$Region, richness_BB16S_bac$Site)
 ```
 
-Tests of Shannon diversity
+Tests of Shannon diversity 
 ```{r}
 #ANOVA and Tukey's PW comparisons
 #Run a full 4 way ANOVA with interactions
-mod<-aov(Shannon ~ Region * Treatment * Timepoint, data = richness_BB16S_bac)
+mod<-aov(Shannon ~ Site * Treatment * Timepoint, data = richness_BB16S_bac)
 #residuals look fine. 
 shapiro.test(mod$residuals)
 summary(mod)
 #Summary of model shows region to be only lower order significant predictor.
 #interaction term of region x timepoint as well. 
 
-#CP has lower Shannon diversity than both NE and SE. WV has lower Shannon diversity than both NE and SE. 
-TukeyHSD(mod, "Region")
-plot(TukeyHSD(mod, "Region"), las=1, cex.axis = 0.4)
+#Left over from inital exploration with region. CP has lower Shannon diversity than both NE and SE. WV has lower Shannon diversity than both NE and SE. 
+#Several pairwise differences in shannon diversity across sites.
+TukeyHSD(mod, "Site")
+plot(TukeyHSD(mod, "Site"), las=1, cex.axis = 0.4)
 
 #Several significant pairwise differences to accompany the significant global test for interaction term. 
-TukeyHSD(mod, "Region:Timepoint")
-plot(TukeyHSD(mod, "Region:Timepoint"), las=1, cex.axis = 0.4)
+TukeyHSD(mod, "Site:Timepoint")
+plot(TukeyHSD(mod, "Site:Timepoint"), las=1, cex.axis = 0.4)
+
+plot_richness(bb16S_bac_rarefy, x = "Site", measures = c("Shannon"), color = "Site") + geom_boxplot() + ggtitle("Site")
 ```
 Tests of Chao 1 - emphasizes importance of rare taxa
 ```{r}
 #ANOVA and Tukey's PW comparisons
 #Run a full 4 way ANOVA with interactions
-mod<-aov(Chao1 ~ Region * Treatment * Timepoint, data = richness_BB16S_bac)
+mod<-aov(Chao1 ~ Site * Treatment * Timepoint, data = richness_BB16S_bac)
 #residuals look fine. 
 shapiro.test(mod$residuals)
 summary(mod)
-#No significant effects of our predictors on Chao1 
+#Site and the interactions with site are significant. 
+
+TukeyHSD(mod, "Site")
+plot(TukeyHSD(mod, "Site"), las=1, cex.axis = 0.4)
+
+plot_richness(bb16S_bac_rarefy, x = "Site", measures = c("Chao1"), color = "Site") + geom_boxplot() + ggtitle("Site")
 ```
 
 Tests of Observed - unique taxa in a sample. 
 ```{r}
 #ANOVA and Tukey's PW comparisons
 #Run a full 4 way ANOVA with interactions
-mod<-aov(Observed ~ Region * Treatment * Timepoint, data = richness_BB16S_bac)
+mod<-aov(Observed ~ Site * Treatment * Timepoint, data = richness_BB16S_bac)
 #residuals look fine. 
 shapiro.test(mod$residuals)
 summary(mod)
-#Summary of model shows no lower order significant predictor. Only Region * Timepoint interaction. 
+#Summary of model shows site to be a significant predictor as well as the site interaction terms.
+TukeyHSD(mod, "Site")
+plot(TukeyHSD(mod, "Site"), las=1, cex.axis = 0.4)
 
-#No significant pairwise differences
-TukeyHSD(mod, "Region:Timepoint")
-plot(TukeyHSD(mod, "Region:Timepoint"), las=1, cex.axis = 0.4)
+plot_richness(bb16S_bac_rarefy, x = "Site", measures = c("Observed"), color = "Site") + geom_boxplot() + ggtitle("Site")
 ```
-Summary of alpha diversity: Rarefying at 20k reads sufficiently captures the diversity of each sample, as demonstrated by the plateau in our rarefaction curves. Region is only a significant predictor for Shannon diversity. Region * timepoint interaction is present for both Shannon diversity and richness (simple count of unique taxa in a sample). 
+Summary of alpha diversity: Rarefying at 20k reads sufficiently captures the diversity of each sample, as demonstrated by the plateau in our rarefaction curves. Site is the most useful predictor for determining differences in alpha diversity. Several interactions with site are present for all metrics of alpha diversity. 
 
 
 
@@ -174,20 +199,20 @@ https://ichthyology.usm.edu/courses/multivariate/feb_7.pdf
 #extract data from phyloseq object
 sd_adonis <- data.frame(sample_data(bb16S_bac_ML))
 sd_adonis$Treatment <-as.factor(sd_adonis$Treatment)
-sd_adonis$Region <-as.factor(sd_adonis$Region)
+sd_adonis$Site <-as.factor(sd_adonis$Site)
 tab_adonis <- data.frame(otu_table(bb16S_bac_ML))
 dist <- parallelDist(as.matrix(tab_adonis), method = "bray")
 
-#this model explores the effect of Region, treatment and time point and restricts permutations to time points. 
-adonis(dist ~  Region * Treatment * Timepoint, data= sd_adonis, permutations = 10000)
-adonis(dist ~  Region * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Timepoint, permutations = 10000)
-adonis(dist ~  Region * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Region, permutations = 10000)
+#this model explores the effect of Site, treatment and time point and restricts permutations to time points. 
+adonis(dist ~  Site * Treatment * Timepoint, data= sd_adonis, permutations = 10000)
+adonis(dist ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Timepoint, permutations = 10000)
+adonis(dist ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
 #another way to specify the same model using adonis2. Both provide same results.
 perm <- how(nperm = 10000)
 setBlocks(perm) <- with(sd_adonis, Timepoint)
-adonis2(dist ~  Region * Treatment * Timepoint, data= sd_adonis, permutations = perm, by = "terms")
+adonis2(dist ~  Site * Treatment * Timepoint, data= sd_adonis, permutations = perm, by = "terms")
 ```
-Based on results, region is the main determinant of microbiome composition (r2 of 0.42). Time point is also significant but explains much less of the variation (r2 of 0.063). Next, I will split by time point and examine the effect of each treatment while controlling for regional effects using the strata argument (strata = region). 
+Based on results, site is the main determinant of microbiome composition (r2 of 0.51). Time point is also significant but explains much less of the variation (r2 of 0.063) as is treatment (r2 of 0.24). Next, I will split by time point and examine the effect of each treatment while controlling for site effects using the strata argument (strata = site). 
 
 Split by time point as these are before and after treatment.
 ```{r}
@@ -201,27 +226,29 @@ bb16S_bac_ML_B <- subset_samples(bb16S_bac_ML, Timepoint == "B")
 #extract data from phyloseq object for pre-treatment
 sd_adonis <- data.frame(sample_data(bb16S_bac_ML_A))
 sd_adonis$Treatment <-as.factor(sd_adonis$Treatment)
-sd_adonis$Region <-as.factor(sd_adonis$Region)
+sd_adonis$Site <-as.factor(sd_adonis$Site)
 tab_adonis <- data.frame(otu_table(bb16S_bac_ML_A))
 dist <- parallelDist(as.matrix(tab_adonis), method = "bray")
-adonis(dist ~  Region * Treatment, data= sd_adonis, strata = sd_adonis$Region, permutations = 10000)
-adonis(dist ~  Treatment * Region, data= sd_adonis, strata = sd_adonis$Region, permutations = 10000)
-adonis(dist ~  Region * Treatment, data= sd_adonis, permutations = 10000)
-adonis(dist ~   Treatment * Region, data= sd_adonis, permutations = 10000)
+adonis(dist ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
+adonis(dist ~  Treatment * Site, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
+adonis(dist ~  Site * Treatment, data= sd_adonis, permutations = 10000)
+adonis(dist ~   Treatment * Site, data= sd_adonis, permutations = 10000)
 
 #extract data from phyloseq object for post-treatment
 sd_adonis <- data.frame(sample_data(bb16S_bac_ML_B))
 sd_adonis$Treatment <-as.factor(sd_adonis$Treatment)
-sd_adonis$Region <-as.factor(sd_adonis$Region)
+sd_adonis$Site <-as.factor(sd_adonis$Site)
 tab_adonis <- data.frame(otu_table(bb16S_bac_ML_B))
 dist <- parallelDist(as.matrix(tab_adonis), method = "bray")
-adonis(dist ~  Region * Treatment, data= sd_adonis, strata = sd_adonis$Region, permutations = 10000)
-adonis(dist ~  Treatment * Region, data= sd_adonis, strata = sd_adonis$Region, permutations = 10000)
-adonis(dist ~  Region * Treatment, data= sd_adonis, permutations = 10000)
-adonis(dist ~   Treatment * Region, data= sd_adonis, permutations = 10000)
+adonis(dist ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
+adonis(dist ~  Treatment * Site, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
+adonis(dist ~  Site * Treatment, data= sd_adonis, permutations = 10000)
+adonis(dist ~   Treatment * Site, data= sd_adonis, permutations = 10000)
 ```
 
-No effect of treatment (r2 < 0.05), even when the differences among regions were controlled for or terms were reordered. This suggests that the miticide has limited effect on bacterial community composition. Region remains a significant predictor within each time point and explains the majority of the variation. 
+Time point 1: Significant effect of Site (r2 of 0.73). Treatment is also a significant predictor (r2 0.04), which is something to note because this is supposed to be before treatment was applied. When permutations are restricted to within site, treatment and site remain significant. 
+
+Time point 2: Site was again a significant predictor (r2 of 0.60) and treatment was borderline significant. However, when the effect of site was controlled for by using strata = site, treatment becomes significant (r2 of 0.039) and site switches to borderline significance. 
 
 
 Visualize ordinations using two methods. CAP and NMDS
@@ -229,23 +256,24 @@ Visualize ordinations using two methods. CAP and NMDS
 #extract data from phyloseq object and run cca using vegan to examine significance of constraining variables
 sd_adonis <- data.frame(sample_data(bb16S_bac_ML))
 sd_adonis$Treatment <-as.factor(sd_adonis$Treatment)
-sd_adonis$Region <-as.factor(sd_adonis$Region)
+sd_adonis$Site <-as.factor(sd_adonis$Site)
 tab_adonis <- data.frame(otu_table(bb16S_bac_ML))
 #run model and check global significance using anova.cca.
-cca_mod<-cca(tab_adonis ~ Region + Timepoint + Treatment, sd_adonis)
+cca_mod<-cca(tab_adonis ~ Site + Timepoint + Treatment, sd_adonis)
 anova.cca(cca_mod)
 #significant global model so lets look at individual parameters
 drop1(cca_mod, test = "perm", permutations = 100)
-#Region and time point are significant but treatment is not. We will not include treatment in our constrained ordination
+#Site and time point are significant but treatment is not. We will not include treatment in our constrained ordination
 
 #CAP
-ord_cap<-ordinate(physeq = bb16S_bac_ML, method = "CAP", distance = "bray", formula = ~  Region + Timepoint )
-plot_ordination(physeq = bb16S_bac_ML, ordination = ord_cap, type = "Samples", color = "Region", shape = "Timepoint" ) + theme_classic()
-#strongest grouping by region. Time point also has a smaller effect and the groupings are not nearly as clear. 
+ord_cap<-ordinate(physeq = bb16S_bac_ML, method = "CAP", distance = "bray", formula = ~  Site + Timepoint )
+plot_ordination(physeq = bb16S_bac_ML, ordination = ord_cap, type = "Samples", color = "Site", shape = "Timepoint" ) + theme_classic()
+#strongest grouping by Site. Time point also has a smaller effect and the groupings are not nearly as clear. 
 
 #NMDS
 ord_nmds<-ordinate(physeq = bb16S_bac_ML, method = "NMDS", distance = "bray", k = 3, trymax = 1000)
-plot_ordination(physeq = bb16S_bac_ML, ordination = ord_nmds, type = "Samples", color = "Region", shape = "Timepoint" ) + theme_classic()
+ord_nmds$stress
+plot_ordination(physeq = bb16S_bac_ML, ordination = ord_nmds, type = "Samples", color = "Site", shape = "Timepoint" ) + theme_classic()
 ```
 
 #indicator taxa
@@ -285,32 +313,89 @@ return(taxa_keep)
 }
 ```
 
+Run baruta algo with full dataset. We are looking for taxa that explain differences among sites. 
 ```{r}
-baruta_region_indicators<-baruta_phyloseq(physeq = bb16S_bac_ML, GroupingVar = "Region")
+baruta_Site_indicators<-baruta_phyloseq(physeq = bb16S_bac_ML, GroupingVar = "Site")
 
-baruta_region_indicators_ps_object <- subset_taxa(bb16S_bac_ML, taxa_names(bb16S_bac_ML) %in% baruta_region_indicators)
+baruta_Site_indicators_ps_object <- subset_taxa(bb16S_bac_ML, taxa_names(bb16S_bac_ML) %in% baruta_Site_indicators)
 ```
 
 https://jokergoo.github.io/ComplexHeatmap-reference/book/
+Heatmap with all samples together. 
 ```{r}
-library(micrUBIfuns)
-baruta_region_indicators_ps_object_tax <- tax_table(baruta_region_indicators_ps_object)
-baruta_region_indicators_ps_object_tax<-data.frame(baruta_region_indicators_ps_object_tax)
+baruta_Site_indicators_ps_object_tax <- tax_table(baruta_Site_indicators_ps_object)
+baruta_Site_indicators_ps_object_tax<-data.frame(baruta_Site_indicators_ps_object_tax)
 
-baruta_region_indicators_ps_object_tax$Class[is.na(baruta_region_indicators_ps_object_tax$Class)]<-"Unknown"
-baruta_region_indicators_ps_object_tax$Family[is.na(baruta_region_indicators_ps_object_tax$Family)]<-"Unknown"
+baruta_Site_indicators_ps_object_tax$Class[is.na(baruta_Site_indicators_ps_object_tax$Class)]<-"Unknown"
+baruta_Site_indicators_ps_object_tax$Family[is.na(baruta_Site_indicators_ps_object_tax$Family)]<-"Unknown"
 
-baruta_region_indicators_ps_object@tax_table <- tax_table(baruta_region_indicators_ps_object_tax)
+baruta_Site_indicators_ps_object@tax_table <- tax_table(baruta_Site_indicators_ps_object_tax)
 
 
-fam_names<-data.frame(gsub("column", "", tax_table(baruta_region_indicators_ps_object)[,3]))
+fam_names<-data.frame(gsub("column", "", tax_table(baruta_Site_indicators_ps_object)[,3]))
 
 library(circlize)
 
 col_fun = colorRamp2(c(-2, 0, 2), c("green", "white", "red"))
-micrUBIfuns::plot_taxa_heatmap(baruta_region_indicators_ps_object, rm_na = F,scale_by = "taxa", cluster_rows=F, cluster_columns = T ,column_labels = tax_table(baruta_region_indicators_ps_object)[,3], row_dend_reorder =TRUE, col= col_fun)
+#heatmap with taxa names
+micrUBIfuns::plot_taxa_heatmap(baruta_Site_indicators_ps_object, rm_na = F,scale_by = "taxa", cluster_rows=F, cluster_columns = T ,column_labels = tax_table(baruta_Site_indicators_ps_object)[,4], row_dend_reorder =TRUE, col= col_fun)
+#heatmap with otuIDs
+micrUBIfuns::plot_taxa_heatmap(baruta_Site_indicators_ps_object, rm_na = F,scale_by = "taxa", cluster_rows=F, cluster_columns = T ,column_labels = taxa_names(baruta_Site_indicators_ps_object), row_dend_reorder =TRUE, col= col_fun)
 
-#based off of initial figure, it looks like there is a pattern for every other row, indicating differences in time. We might want to split by time point and then repeat anaysis.  
+#based off of initial figure, it looks like there is a pattern for every other row, indicating differences in time. We might want to split by time point and then repeat analysis.  
 
+```
+
+Split by time point and rerun Baruta algo. 
+```{r}
+#pre-treatment samples
+bb16S_bac_ML_A <- subset_samples(bb16S_bac_ML, Timepoint == "A")
+baruta_Site_indicators_A<-baruta_phyloseq(physeq = bb16S_bac_ML_A, GroupingVar = "Site")
+baruta_Site_indicators_ps_object_A <- subset_taxa(bb16S_bac_ML_A, taxa_names(bb16S_bac_ML_A) %in% baruta_Site_indicators_A)
+
+baruta_Site_indicators_ps_object_tax_A <- tax_table(baruta_Site_indicators_ps_object_A)
+baruta_Site_indicators_ps_object_tax_A<-data.frame(baruta_Site_indicators_ps_object_tax_A)
+baruta_Site_indicators_ps_object_tax_A$Class[is.na(baruta_Site_indicators_ps_object_tax_A$Class)]<-"Unknown"
+baruta_Site_indicators_ps_object_tax_A$Family[is.na(baruta_Site_indicators_ps_object_tax_A$Family)]<-"Unknown"
+
+baruta_Site_indicators_ps_object_A@tax_table <- tax_table(baruta_Site_indicators_ps_object_tax_A)
+
+
+fam_names<-data.frame(gsub("column", "", tax_table(baruta_Site_indicators_ps_object_A)[,3]))
+
+
+col_fun = colorRamp2(c(-2, 0, 2), c("green", "white", "red"))
+#heatmap with taxa names
+micrUBIfuns::plot_taxa_heatmap(baruta_Site_indicators_ps_object_A, rm_na = F,scale_by = "taxa", cluster_rows=F, cluster_columns = T ,column_labels = tax_table(baruta_Site_indicators_ps_object_A)[,4], row_dend_reorder =TRUE, col= col_fun)
+#heatmap with otuIDs
+micrUBIfuns::plot_taxa_heatmap(baruta_Site_indicators_ps_object_A, rm_na = F,scale_by = "taxa", cluster_rows=F, cluster_columns = T ,column_labels = taxa_names(baruta_Site_indicators_ps_object_A), row_dend_reorder =TRUE, col= col_fun)
+```
+
+
+```{r}
+#post-treatment samples
+bb16S_bac_ML_B <- subset_samples(bb16S_bac_ML, Timepoint == "B")
+baruta_Site_indicators_B<-baruta_phyloseq(physeq = bb16S_bac_ML_B, GroupingVar = "Site")
+baruta_Site_indicators_ps_object_B <- subset_taxa(bb16S_bac_ML_B, taxa_names(bb16S_bac_ML_B) %in% baruta_Site_indicators_B)
+
+baruta_Site_indicators_ps_object_tax_B <- tax_table(baruta_Site_indicators_ps_object_B)
+baruta_Site_indicators_ps_object_tax_B<-data.frame(baruta_Site_indicators_ps_object_tax_B)
+baruta_Site_indicators_ps_object_tax_B$Class[is.na(baruta_Site_indicators_ps_object_tax_B$Class)]<-"Unknown"
+baruta_Site_indicators_ps_object_tax_B$Family[is.na(baruta_Site_indicators_ps_object_tax_B$Family)]<-"Unknown"
+
+baruta_Site_indicators_ps_object_B@tax_table <- tax_table(baruta_Site_indicators_ps_object_tax_B)
+
+
+fam_names<-data.frame(gsub("column", "", tax_table(baruta_Site_indicators_ps_object_B)[,3]))
+
+
+col_fun = colorRamp2(c(-2, 0, 2), c("green", "white", "red"))
+#heatmap with taxa names
+micrUBIfuns::plot_taxa_heatmap(baruta_Site_indicators_ps_object_B, rm_na = F,scale_by = "taxa", cluster_rows=F, cluster_columns = T ,column_labels = tax_table(baruta_Site_indicators_ps_object_B)[,4], row_dend_reorder =TRUE, col= col_fun)
+#heatmap with OTUids
+micrUBIfuns::plot_taxa_heatmap(baruta_Site_indicators_ps_object_B, rm_na = F,scale_by = "taxa", cluster_rows=F, cluster_columns = T ,column_labels = taxa_names(baruta_Site_indicators_ps_object_B), row_dend_reorder =TRUE, col= col_fun)
+```
+```{r}
+plot_tree(baruta_Site_indicators_ps_object, color="Site", shape = "Timepoint", size = "abundance", label.tips = "taxa_names")
 ```
 

@@ -213,9 +213,7 @@ head(taxa.print)
 ```
 
 
-
-
-
+create phylogenetic tree with phangorn defaults
 ```{r}
 sequences<-getSequences(seqtab.nochim)
 names(sequences)<-sequences
