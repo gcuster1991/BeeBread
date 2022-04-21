@@ -513,10 +513,15 @@ plot_tree(baruta_Site_indicators_ps_object_B, color="Site", shape = "Treatment",
 ```
 Shared and unique taxa among sites
 ```{r}
+taxa_core_graph()
+
+#group at genus and re run.
+
 unique_taxa(phyloseq_obj = bb16S_bac_rarefy, treatment = "Site")
 unique_taxa(phyloseq_obj = bb16S_bac_rarefy, treatment = "Region")
+unique_taxa(phyloseq_obj = bb16S_bac_rarefy, treatment = "Treatment")
 
-common_taxa(phyloseq_obj = bb16S_bac_rarefy, treatment = "Site", n = 6)
+common_taxa(phyloseq_obj = bb16S_bac_rarefy, treatment = "Site", n = "all")
 common_taxa(phyloseq_obj = bb16S_bac_rarefy, treatment = "Site", n = 4)
 ```
 
