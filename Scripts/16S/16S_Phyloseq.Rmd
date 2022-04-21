@@ -447,6 +447,35 @@ Again, strong groupings of sites by Baruta ID'ed taxa at time point 2.
 
 
 Next, we will look for taxa that consistently explain the differences among treatments following application. Again we will use the Baruta algorithm, but this time, we will specify the grouping variable as Treatment.
+
+Merge by treatments to see if there are consistencies across treatments. No significant indicators.  
+```{r}
+#subset to post-treatment samples only
+bb16S_bac_ML_B<-subset_samples(bb16S_bac_ML, Timepoint == "B")
+#summarize by Treatment_Site
+bb16S_bac_ML_B_merged<-merge_samples(bb16S_bac_ML_B, "Treatment")
+sample_data(bb16S_bac_ML_B_merged)$Treatment<-rownames(sample_data(bb16S_bac_ML_B_merged))
+#run algo and filter phyloseq object
+bb16S_bac_ML_B_merged<-prune_taxa(taxa_sums(bb16S_bac_ML_B_merged) > 0, bb16S_bac_ML_B_merged)
+baruta_Site_indicators_B_merged<-baruta_phyloseq(physeq = bb16S_bac_ML_B_merged, GroupingVar = "Treatment")
+#no taxa indicative of treatment x site interaction.
+#Stop this inquiry here. Do not run below because no taxa are identified. 
+
+baruta_Site_indicators_ps_object_B_merged<-subset_taxa(bb16S_bac_ML_B_merged, taxa_names(bb16S_bac_ML_B_merged) %in% baruta_Site_indicators_B_merged)
+#extract taxonomy and rename NA to unknown. 
+baruta_Site_indicators_ps_object_tax_B_merged<-tax_table(baruta_Site_indicators_ps_object_B_merged)
+baruta_Site_indicators_ps_object_tax_B_merged<-data.frame(baruta_Site_indicators_ps_object_tax_B_merged)
+baruta_Site_indicators_ps_object_tax_B_merged$Class[is.na(baruta_Site_indicators_ps_object_tax_B_merged$Class)]<-"Unknown"
+baruta_Site_indicators_ps_object_tax_B_merged$Family[is.na(baruta_Site_indicators_ps_object_tax_B_merged$Family)]<-"Unknown"
+baruta_Site_indicators_ps_object_B_merged@tax_table<-tax_table(baruta_Site_indicators_ps_object_tax_B_merged)
+fam_names<-data.frame(gsub("column", "", tax_table(baruta_Site_indicators_ps_object_B_merged)[,3]))
+#heatmap with taxa names
+micrUBIfuns::plot_taxa_heatmap(baruta_Site_indicators_ps_object_B_merged, rm_na = F,scale_by = "taxa", cluster_rows=F, cluster_columns = T ,column_labels = tax_table(baruta_Site_indicators_ps_object_B)[,4], row_dend_reorder =TRUE, col= col_fun)
+#heatmap with OTUids
+micrUBIfuns::plot_taxa_heatmap(baruta_Site_indicators_ps_object_B_merged, rm_na = F,scale_by = "taxa", cluster_rows=F, cluster_columns = T ,column_labels = taxa_names(baruta_Site_indicators_ps_object_B), row_dend_reorder =TRUE, col= col_fun)
+```
+
+Merge by treatment site and rerun algo.  No significant indicators.  
 ```{r}
 #subset to post-treatment samples only
 bb16S_bac_ML_B<-subset_samples(bb16S_bac_ML, Timepoint == "B")
@@ -454,7 +483,7 @@ bb16S_bac_ML_B<-subset_samples(bb16S_bac_ML, Timepoint == "B")
 bb16S_bac_ML_B_merged<-merge_samples(bb16S_bac_ML_B, "Treatment_Site")
 sample_data(bb16S_bac_ML_B_merged)$Treatment_Site<-rownames(sample_data(bb16S_bac_ML_B_merged))
 #run algo and filter phyloseq object
-bb16S_bac_ML_B_merged<-prune_taxa(taxa_sums(bb16S_bac_ML_B_merged) < 1, bb16S_bac_ML_B_merged)
+bb16S_bac_ML_B_merged<-prune_taxa(taxa_sums(bb16S_bac_ML_B_merged) > 0, bb16S_bac_ML_B_merged)
 baruta_Site_indicators_B_merged<-baruta_phyloseq(physeq = bb16S_bac_ML_B_merged, GroupingVar = "Treatment_Site")
 #no taxa indicative of treatment x site interaction.
 #Stop this inquiry here. Do not run below becasue no taxa are identified. 
@@ -477,8 +506,8 @@ Exploratory tree of indicators from initial Baruta and then split by timpeoints.
 ```{r}
 plot_tree(baruta_Site_indicators_ps_object, color="Site", shape = "Timepoint", label.tips = "taxa_names")
 
-plot_tree(baruta_Site_indicators_ps_object_A, color="Site", label.tips = "taxa_names")
+plot_tree(baruta_Site_indicators_ps_object_A, color="Site", shape = "Treatment", label.tips = "taxa_names")
 
-plot_tree(baruta_Site_indicators_ps_object_B, color="Site", label.tips = "taxa_names")
+plot_tree(baruta_Site_indicators_ps_object_B, color="Site", shape = "Treatment", label.tips = "taxa_names")
 ```
 
