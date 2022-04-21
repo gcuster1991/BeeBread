@@ -17,6 +17,7 @@ require(readr)
 require(tidyverse)
   require(micrUBIfuns)
 require(circlize)
+  require(phylosmith)
 ```
 
 Load necessary files from Dada2 processing script. 
@@ -306,7 +307,7 @@ cca_mod<-cca(tab_adonis ~ Site + Timepoint + Treatment, sd_adonis)
 anova.cca(cca_mod)
 #significant global model so lets look at individual parameters
 drop1(cca_mod, test = "perm", permutations = 100)
-#Site and time point are significant but treatment is not. We will not include treatment in our constrained ordination.
+0#Site and time point are significant but treatment is not. We will not include treatment in our constrained ordination.
 ```
 
 Constrained ordination using CAP
@@ -509,5 +510,13 @@ plot_tree(baruta_Site_indicators_ps_object, color="Site", shape = "Timepoint", l
 plot_tree(baruta_Site_indicators_ps_object_A, color="Site", shape = "Treatment", label.tips = "taxa_names")
 
 plot_tree(baruta_Site_indicators_ps_object_B, color="Site", shape = "Treatment", label.tips = "taxa_names")
+```
+Shared and unique taxa among sites
+```{r}
+unique_taxa(phyloseq_obj = bb16S_bac_rarefy, treatment = "Site")
+unique_taxa(phyloseq_obj = bb16S_bac_rarefy, treatment = "Region")
+
+common_taxa(phyloseq_obj = bb16S_bac_rarefy, treatment = "Site", n = 6)
+common_taxa(phyloseq_obj = bb16S_bac_rarefy, treatment = "Site", n = 4)
 ```
 
