@@ -18,6 +18,7 @@ require(tidyverse)
   require(micrUBIfuns)
 require(circlize)
   require(phylosmith)
+require(phangorn)
 ```
 
 Load necessary files from Dada2 processing script. 
@@ -511,17 +512,143 @@ plot_tree(baruta_Site_indicators_ps_object_A, color="Site", shape = "Treatment",
 
 plot_tree(baruta_Site_indicators_ps_object_B, color="Site", shape = "Treatment", label.tips = "taxa_names")
 ```
-Shared and unique taxa among sites
+
 ```{r}
-taxa_core_graph()
+#create super long color vector
+col_vector <- c("#000000", "#FFFF00", "#1CE6FF", "#FF34FF", "#FF4A46", "#008941", "#006FA6", "#A30059",
+        "#FFDBE5", "#7A4900", "#0000A6", "#63FFAC", "#B79762", "#004D43", "#8FB0FF", "#997D87",
+        "#5A0007", "#809693", "#FEFFE6", "#1B4400", "#4FC601", "#3B5DFF", "#4A3B53", "#FF2F80",
+        "#61615A", "#BA0900", "#6B7900", "#00C2A0", "#FFAA92", "#FF90C9", "#B903AA", "#D16100",
+        "#DDEFFF", "#000035", "#7B4F4B", "#A1C299", "#300018", "#0AA6D8", "#013349", "#00846F",
+        "#372101", "#FFB500", "#C2FFED", "#A079BF", "#CC0744", "#C0B9B2", "#C2FF99", "#001E09",
+        "#00489C", "#6F0062", "#0CBD66", "#EEC3FF", "#456D75", "#B77B68", "#7A87A1", "#788D66",
+        "#885578", "#FAD09F", "#FF8A9A", "#D157A0", "#BEC459", "#456648", "#0086ED", "#886F4C",
+        
+        "#34362D", "#B4A8BD", "#00A6AA", "#452C2C", "#636375", "#A3C8C9", "#FF913F", "#938A81",
+        "#575329", "#00FECF", "#B05B6F", "#8CD0FF", "#3B9700", "#04F757", "#C8A1A1", "#1E6E00",
+        "#7900D7", "#A77500", "#6367A9", "#A05837", "#6B002C", "#772600", "#D790FF", "#9B9700",
+        "#549E79", "#FFF69F", "#201625", "#72418F", "#BC23FF", "#99ADC0", "#3A2465", "#922329",
+        "#5B4534", "#FDE8DC", "#404E55", "#0089A3", "#CB7E98", "#A4E804", "#324E72", "#6A3A4C",
+        "#83AB58", "#001C1E", "#D1F7CE", "#004B28", "#C8D0F6", "#A3A489", "#806C66", "#222800",
+        "#BF5650", "#E83000", "#66796D", "#DA007C", "#FF1A59", "#8ADBB4", "#1E0200", "#5B4E51",
+        "#C895C5", "#320033", "#FF6832", "#66E1D3", "#CFCDAC", "#D0AC94", "#7ED379", "#012C58",
+        
+        "#7A7BFF", "#D68E01", "#353339", "#78AFA1", "#FEB2C6", "#75797C", "#837393", "#943A4D",
+        "#B5F4FF", "#D2DCD5", "#9556BD", "#6A714A", "#001325", "#02525F", "#0AA3F7", "#E98176",
+        "#DBD5DD", "#5EBCD1", "#3D4F44", "#7E6405", "#02684E", "#962B75", "#8D8546", "#9695C5",
+        "#E773CE", "#D86A78", "#3E89BE", "#CA834E", "#518A87", "#5B113C", "#55813B", "#E704C4",
+        "#00005F", "#A97399", "#4B8160", "#59738A", "#FF5DA7", "#F7C9BF", "#643127", "#513A01",
+        "#6B94AA", "#51A058", "#A45B02", "#1D1702", "#E20027", "#E7AB63", "#4C6001", "#9C6966",
+        "#64547B", "#97979E", "#006A66", "#391406", "#F4D749", "#0045D2", "#006C31", "#DDB6D0",
+        "#7C6571", "#9FB2A4", "#00D891", "#15A08A", "#BC65E9", "#FFFFFE", "#C6DC99", "#203B3C",
+        "#671190", "#6B3A64", "#F5E1FF", "#FFA0F2", "#CCAA35", "#374527", "#8BB400", "#797868",
+        "#C6005A", "#3B000A", "#C86240", "#29607C", "#402334", "#7D5A44", "#CCB87C", "#B88183",
+        "#AA5199", "#B5D6C3", "#A38469", "#9F94F0", "#A74571", "#B894A6", "#71BB8C", "#00B433",
+        "#789EC9", "#6D80BA", "#953F00", "#5EFF03", "#E4FFFC", "#1BE177", "#BCB1E5", "#76912F",
+        "#003109", "#0060CD", "#D20096", "#895563", "#29201D", "#5B3213", "#A76F42", "#89412E",
+        "#1A3A2A", "#494B5A", "#A88C85", "#F4ABAA", "#A3F3AB", "#00C6C8", "#EA8B66", "#958A9F",
+        "#BDC9D2", "#9FA064", "#BE4700", "#658188", "#83A485", "#453C23", "#47675D", "#3A3F00",
+        "#061203", "#DFFB71", "#868E7E", "#98D058", "#6C8F7D", "#D7BFC2", "#3C3E6E", "#D83D66",
+        "#2F5D9B", "#6C5E46", "#D25B88", "#5B656C", "#00B57F", "#545C46", "#866097", "#365D25",
+        "#252F99", "#00CCFF", "#674E60", "#FC009C", "#92896B")
+```
+
+#Core and unique taxa
+```{r}
+#calculate core at genus level
+bb16S_bac_rarefy_tax_genus<-tax_glom(physeq = bb16S_bac_rarefy, taxrank = "Genus", NArm = F)
+#calculate core
+#genus - 33 members
+#asvs - 49 members
+core_genus<-taxa_core(phyloseq_obj = bb16S_bac_rarefy_tax_genus, treatment = "Site", frequency = 0.90, abundance_threshold = 0.00001 ) 
+core_asv<-taxa_core(phyloseq_obj = bb16S_bac_rarefy, treatment = "Site", frequency = 0.90, abundance_threshold = 0.00001 ) 
+#plot core for exploratory purposes
+plot_tree(core_genus, color = "Site", shape = "Timepoint")
+plot_tree(core_asv, color = "Site", shape = "Timepoint")
+#plot bars for exploratory purposes. Many unknowns at genus level and family level
+plot_bar(core_genus, x = "Region_Site", fill = "Family") + scale_fill_manual(values = col_vector) +geom_bar(stat="identity")
+plot_bar(core_asv, x = "Region_Site", fill = "Family") + scale_fill_manual(values = col_vector) +geom_bar(stat="identity")
+#extract taxonomy from core genus phyloseqe object
+#core_genus_taxonomy <- data.frame(tax_table(core_genus))
+
+#Determine those taxa unique to a site at Genus level
+unique_genera_to_region_tax<-unique_taxa(phyloseq_obj = bb16S_bac_rarefy_tax_genus, treatment = "Region")
+unique_genera_to_site_tax<-unique_taxa(phyloseq_obj = bb16S_bac_rarefy_tax_genus, treatment = "Site")
+#asv level
+unique_asv_to_region_tax<-unique_taxa(phyloseq_obj = bb16S_bac_rarefy, treatment = "Region")
+unique_asv_to_site_tax<-unique_taxa(phyloseq_obj = bb16S_bac_rarefy, treatment = "Site")
+
+#186 genera are unique to one region. 176 genera are unique to a site. This means that only 10 Taxa unique to a region are not shared for the sites within that region. 
+
+#genera
+#186 genera are unique to one region. 176 genera are unique to a site. This means that only 10 Taxa unique to a region are not shared for the sites within that region. 
+unique_genera_to_site_tax_ps<-subset_taxa(bb16S_bac_rarefy, taxa_names(bb16S_bac_rarefy) %in% unlist(unique_genera_to_site_tax))
+unique_genera_to_region_tax_ps<-subset_taxa(bb16S_bac_rarefy, taxa_names(bb16S_bac_rarefy) %in% unlist(unique_genera_to_region_tax))
+
+#asv
+#1510 asvs are unique to one region. 1484 asvs are unique to a site. This means that only 26 asvs unique to a region are not shared for the sites within that region. 
+unique_asv_to_site_tax_ps<-subset_taxa(bb16S_bac_rarefy, taxa_names(bb16S_bac_rarefy) %in% unlist(unique_asv_to_site_tax))
+unique_asv_to_region_tax_ps<-subset_taxa(bb16S_bac_rarefy, taxa_names(bb16S_bac_rarefy) %in% unlist(unique_asv_to_region_tax))
+
+plot_bar(unique_genera_to_site_tax_ps, x = "Region_Site", fill = "Genus") + scale_fill_manual(values = col_vector) +geom_bar(stat="identity")
+plot_bar(unique_genera_to_region_tax_ps, x = "Region", fill = "Genus") + scale_fill_manual(values = col_vector) +geom_bar(stat="identity")
+```
+Shared and unique taxa among sites by phylogney
+```{r}
+#cut tree at two differnt levels for exploratory purposes.
+bb16S_bac_rarefy_tip_merged0_1<-tip_glom(physeq = bb16S_bac_rarefy, h = 0.1)
+plot_tree(bb16S_bac_rarefy_tip_merged0_1, label.tips = "Family", text.size = 3, color = "Region")
+bb16S_bac_rarefy_tip_merged0_2<-tip_glom(physeq = bb16S_bac_rarefy, h = 0.2)
+plot_tree(bb16S_bac_rarefy_tip_merged0_2, label.tips = "Family", text.size = 3, color = "Region")
+#core - 24 members in core 
+core_genus_tip<-taxa_core(phyloseq_obj = bb16S_bac_rarefy_tip_merged0_2, treatment = "Site", frequency = 0.90, abundance_threshold = 0.00001 ) 
+#plot tip core
+plot_tree(core_genus_tip, color = "Site", shape = "Timepoint", label.tips = "Family", text.size = 3 )
+
+
+#Determine those taxa unique to a site in 0.2 cut tree
+unique_genera_to_region_tip<-unique_taxa(phyloseq_obj = bb16S_bac_rarefy_tip_merged0_2, treatment = "Region")
+unique_genera_to_site_tip<-unique_taxa(phyloseq_obj = bb16S_bac_rarefy_tip_merged0_2, treatment = "Site")
+
+# 137 unique to a site and 144 unique to a region. 
+unique_genera_to_site_tip_ps<-subset_taxa(bb16S_bac_rarefy, taxa_names(bb16S_bac_rarefy) %in% unlist(unique_genera_to_site_tip))
+plot_tree(unique_genera_to_site_tip_ps, color = "Site", shape = "Timepoint", label.tips = "Order", text.size = 3 )
+unique_genera_to_region_tip_ps<-subset_taxa(bb16S_bac_rarefy, taxa_names(bb16S_bac_rarefy) %in% unlist(unique_genera_to_region_tip))
+plot_tree(unique_genera_to_region_tip_ps, color = "Site", shape = "Timepoint", label.tips = "Order", text.size = 3 )
+```
+
+
+#condense by tips and taxonomy
+bb16S_bac_rarefy_tip_merged<-tip_glom(physeq = bb16S_bac_rarefy, h = 0.2)
+
+bb16S_bac_rarefy_tax_merged<-tax_glom(physeq = bb16S_bac_rarefy, taxrank = "Genus")
+bb16S_bac_rarefy_tax_merged_F<-tax_glom(physeq = bb16S_bac_rarefy, taxrank = "Genus", NArm = F)
+
+common_taxa(phyloseq_obj = bb16S_bac_rarefy_tax_merged_F, treatment = "Site", n = 'all')
+common_taxa(phyloseq_obj = bb16S_bac_rarefy, treatment = "Site", n = 'all')
+
+
+
+taxa_core_graph(phyloseq_obj = bb16S_bac_rarefy, treatment = "Site")
 
 #group at genus and re run.
+bb16S_bac_rarefy_tip_merged<-tip_glom(physeq = bb16S_bac_rarefy, h = 0.2)
 
-unique_taxa(phyloseq_obj = bb16S_bac_rarefy, treatment = "Site")
-unique_taxa(phyloseq_obj = bb16S_bac_rarefy, treatment = "Region")
-unique_taxa(phyloseq_obj = bb16S_bac_rarefy, treatment = "Treatment")
+
+
+unique_taxa(phyloseq_obj = bb16S_bac_rarefy_tip_merged, treatment = "Site")
+
+
+tax_prop_out<-taxa_proportions(bb16S_bac_rarefy_tip_merged, 'Class', treatment = c('Site'))
+
+
+ggplot(data = tax_prop_out, aes(Site, Proportion, fill = Class)) +
+   geom_bar(stat='identity')
+
+unique_taxa(phyloseq_obj = bb16S_bac_rarefy_tip_merged, treatment = "Region")
+unique_taxa(phyloseq_obj = bb16S_bac_rarefy_tip_merged, treatment = "Treatment")
 
 common_taxa(phyloseq_obj = bb16S_bac_rarefy, treatment = "Site", n = "all")
-common_taxa(phyloseq_obj = bb16S_bac_rarefy, treatment = "Site", n = 4)
-```
+common_taxa(phyloseq_obj = bb16S_bac_rarefy, treatment = "Site")
+
 
