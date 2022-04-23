@@ -556,6 +556,7 @@ col_vector <- c("#000000", "#FFFF00", "#1CE6FF", "#FF34FF", "#FF4A46", "#008941"
 #Core and unique taxa
 ```{r}
 #calculate core at genus level
+#388 members
 bb16S_bac_rarefy_tax_genus<-tax_glom(physeq = bb16S_bac_rarefy, taxrank = "Genus", NArm = F)
 #calculate core
 #genus - 33 members
@@ -592,12 +593,17 @@ unique_asv_to_region_tax_ps<-subset_taxa(bb16S_bac_rarefy, taxa_names(bb16S_bac_
 
 plot_bar(unique_genera_to_site_tax_ps, x = "Region_Site", fill = "Genus") + scale_fill_manual(values = col_vector) +geom_bar(stat="identity")
 plot_bar(unique_genera_to_region_tax_ps, x = "Region", fill = "Genus") + scale_fill_manual(values = col_vector) +geom_bar(stat="identity")
+
+#plot treees
+plot_tree(unique_genera_to_site_tax_ps, color = "Site", shape = "Timepoint", label.tips = "Order", text.size = 3 )
+plot_tree(unique_genera_to_region_tax_ps, color = "Site", shape = "Timepoint", label.tips = "Order", text.size = 3 )
 ```
 Shared and unique taxa among sites by phylogney
 ```{r}
 #cut tree at two differnt levels for exploratory purposes.
 bb16S_bac_rarefy_tip_merged0_1<-tip_glom(physeq = bb16S_bac_rarefy, h = 0.1)
 plot_tree(bb16S_bac_rarefy_tip_merged0_1, label.tips = "Family", text.size = 3, color = "Region")
+#275 members
 bb16S_bac_rarefy_tip_merged0_2<-tip_glom(physeq = bb16S_bac_rarefy, h = 0.2)
 plot_tree(bb16S_bac_rarefy_tip_merged0_2, label.tips = "Family", text.size = 3, color = "Region")
 #core - 24 members in core 
