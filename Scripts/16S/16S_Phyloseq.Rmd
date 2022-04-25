@@ -561,25 +561,51 @@ bb16S_bac_rarefy_tax_genus<-tax_glom(physeq = bb16S_bac_rarefy, taxrank = "Genus
 #calculate core
 #genus - 33 members
 #asvs - 49 members
-core_genus<-taxa_core(phyloseq_obj = bb16S_bac_rarefy_tax_genus, treatment = "Site", frequency = 0.90, abundance_threshold = 0.00001 ) 
+core_genus<-taxa_core(phyloseq_obj = bb16S_bac_rarefy_tax_genus, treatment = "Site", frequency = 0.90, abundance_threshold = 0.00001 )
 core_asv<-taxa_core(phyloseq_obj = bb16S_bac_rarefy, treatment = "Site", frequency = 0.90, abundance_threshold = 0.00001 ) 
 #plot core for exploratory purposes
-plot_tree(core_genus, color = "Site", shape = "Timepoint")
-plot_tree(core_asv, color = "Site", shape = "Timepoint")
+plot_tree(core_genus, color = "Site", shape = "Timepoint", label.tips = "Order")
+plot_tree(core_asv, color = "Site", shape = "Timepoint", label.tips = "Order" )
 #plot bars for exploratory purposes. Many unknowns at genus level and family level
-plot_bar(core_genus, x = "Region_Site", fill = "Family") + scale_fill_manual(values = col_vector) +geom_bar(stat="identity")
-plot_bar(core_asv, x = "Region_Site", fill = "Family") + scale_fill_manual(values = col_vector) +geom_bar(stat="identity")
+plot_bar(core_genus, x = "Region_Site", fill = "Order") + scale_fill_manual(values = col_vector) +geom_bar(stat="identity")
+plot_bar(core_asv, x = "Region_Site", fill = "Order") + scale_fill_manual(values = col_vector) +geom_bar(stat="identity")
 #extract taxonomy from core genus phyloseqe object
 #core_genus_taxonomy <- data.frame(tax_table(core_genus))
 
+#percentage of reads accounted for by core. 
+summary(sample_sums(core_genus)/25000)
+
+#taxonomic composition
+table(tax_table(core_genus)[,2])
+table(tax_table(core_genus)[,3])
+
+#pie charts
+pie_data<-data.frame(table(tax_table(core_genus)[,3]))
+names(pie_data) <- c("Class", "Frequency")
+
+ggplot(pie_data, aes(x="", y=Frequency, fill=Class)) +
+  geom_bar(stat="identity", width=1, color="white") +
+  coord_polar("y", start=0) +
+  theme_void() + scale_fill_manual(values = col_vector)  + ggtitle("Core genera at Class")
+
+```
+Core take aways: The core was defined as those taxa occuring in atleast 90% of samples and having a relative abudnance of greater than 0.00001. When collapsed at the genus level, there are 33 members in the core. Using ASVs, the core consists of 49 members. Looking at the phylogenetic trees, the members of Rickettsiales condense into a single tip at the genus level. Blast-ing this sequence returns plant DNA. I wonder if this is a common plant visited by these bees? Either way, the core accoutns for a mean 79% +/- 0.007 (sd) of the total reads in each sample. 
+
+Taxonomic composition of core:
+Phylum:
+20 proteobacteria, 8 firmicutes, 1 cyanobacteria, 2 bacteriodota, 2 actinobacteira.
+
+Class:
+12 members of gammaproteobacteria, 8 of alphaproteobacteria, 6 bacilli, 2 bacteriodia, clostridia, and actinobacteria, 1 cynanobacteria.
+
+
+```{r}
 #Determine those taxa unique to a site at Genus level
-unique_genera_to_region_tax<-unique_taxa(phyloseq_obj = bb16S_bac_rarefy_tax_genus, treatment = "Region")
+unique_genera_to_region_tax<-unique_taxa(phyloseq_obj = bb16S_bac_rarefy_tax_genus, treatment = "Region", below = 3)
 unique_genera_to_site_tax<-unique_taxa(phyloseq_obj = bb16S_bac_rarefy_tax_genus, treatment = "Site")
 #asv level
 unique_asv_to_region_tax<-unique_taxa(phyloseq_obj = bb16S_bac_rarefy, treatment = "Region")
 unique_asv_to_site_tax<-unique_taxa(phyloseq_obj = bb16S_bac_rarefy, treatment = "Site")
-
-#186 genera are unique to one region. 176 genera are unique to a site. This means that only 10 Taxa unique to a region are not shared for the sites within that region. 
 
 #genera
 #186 genera are unique to one region. 176 genera are unique to a site. This means that only 10 Taxa unique to a region are not shared for the sites within that region. 
@@ -597,8 +623,64 @@ plot_bar(unique_genera_to_region_tax_ps, x = "Region", fill = "Genus") + scale_f
 #plot treees
 plot_tree(unique_genera_to_site_tax_ps, color = "Site", shape = "Timepoint", label.tips = "Order", text.size = 3 )
 plot_tree(unique_genera_to_region_tax_ps, color = "Site", shape = "Timepoint", label.tips = "Order", text.size = 3 )
+
+
+#percentage of reads accounted for by core. 
+summary(sample_sums(unique_genera_to_site_tax_ps)/25000)
+summary(sample_sums(unique_genera_to_region_tax_ps)/25000)
+
+
+#taxonomic composition
+table(tax_table(core_genus)[,2])
+table(tax_table(core_genus)[,3])
+
+
+#pie charts of endemic taxa taxonomy
+#Filter to regions and create pie charts for each. I've chosen to plot regions becasue its a bit simplier but we could quickly change this to sites. 
+#CP
+CP<-subset_samples(unique_genera_to_site_tax_ps, Region == "CP")
+CP<-filter_taxa(CP, function(x) sum(x) >= 1 , TRUE)
+pie_data_CP<-data.frame(table(tax_table(CP)[,2]))
+names(pie_data_CP) <- c("Class", "Frequency")
+ggplot(pie_data_CP, aes(x="", y=Frequency, fill=Class)) +
+  geom_bar(stat="identity", width=1, color="white") +
+  coord_polar("y", start=0) +
+  theme_void()   + scale_fill_manual(values = col_vector) + ggtitle("CP endemic genera at Phylum")
+
+#NE
+NE<-subset_samples(unique_genera_to_site_tax_ps, Region == "NE")
+NE<-filter_taxa(NE, function(x) sum(x) >= 1 , TRUE)
+pie_data_NE<-data.frame(table(tax_table(NE)[,2]))
+names(pie_data_NE) <- c("Class", "Frequency")
+ggplot(pie_data_NE, aes(x="", y=Frequency, fill=Class)) +
+  geom_bar(stat="identity", width=1, color="white") +
+  coord_polar("y", start=0) +
+  theme_void()   + scale_fill_manual(values = col_vector) + ggtitle("NE endemic genera at Phylum")
+
+#SE
+SE<-subset_samples(unique_genera_to_site_tax_ps, Region == "SE")
+SE<-filter_taxa(SE, function(x) sum(x) >= 1 , TRUE)
+pie_data_SE<-data.frame(table(tax_table(SE)[,2]))
+names(pie_data_SE) <- c("Class", "Frequency")
+ggplot(pie_data_SE, aes(x="", y=Frequency, fill=Class)) +
+  geom_bar(stat="identity", width=1, color="white") +
+  coord_polar("y", start=0) +
+  theme_void()   + scale_fill_manual(values = col_vector) + ggtitle("SE endemic genera at Phylum")
+
+#WV
+WV<-subset_samples(unique_genera_to_site_tax_ps, Region == "WV")
+WV<-filter_taxa(WV, function(x) sum(x) >= 1 , TRUE)
+pie_data_WV<-data.frame(table(tax_table(WV)[,2]))
+names(pie_data_WV) <- c("Class", "Frequency")
+ggplot(pie_data_WV, aes(x="", y=Frequency, fill=Class)) +
+  geom_bar(stat="identity", width=1, color="white") +
+  coord_polar("y", start=0) +
+  theme_void()   + scale_fill_manual(values = col_vector) + ggtitle("WV endemic genera at Phylum")
 ```
-Shared and unique taxa among sites by phylogney
+Endemic taxa take aways: 186 genera are unique to one region. 176 genera are unique to a site. This means that only 10 Taxa unique to a region are not shared for the sites within that region. Endemic taxa are currently defined as those occurring only at a single site. This creates its own set of issues in that many taxa are only found in a single sample. I've reached out to the PhyloSmith package creator to ask about augmenting this funciton to relax this a bit to include those taxa occurring in two or three sites. Endemic taxa are much less abundant and account for a max of 0.0086 % of the reads at a site (mean 0.00064%).  
+
+
+Alternate approach to core and endemic taxa based on phylognetic groupings as opposed to collpasing by taxonomy. Shared and unique taxa among sites by phylogeny
 ```{r}
 #cut tree at two differnt levels for exploratory purposes.
 bb16S_bac_rarefy_tip_merged0_1<-tip_glom(physeq = bb16S_bac_rarefy, h = 0.1)
@@ -621,40 +703,11 @@ unique_genera_to_site_tip_ps<-subset_taxa(bb16S_bac_rarefy, taxa_names(bb16S_bac
 plot_tree(unique_genera_to_site_tip_ps, color = "Site", shape = "Timepoint", label.tips = "Order", text.size = 3 )
 unique_genera_to_region_tip_ps<-subset_taxa(bb16S_bac_rarefy, taxa_names(bb16S_bac_rarefy) %in% unlist(unique_genera_to_region_tip))
 plot_tree(unique_genera_to_region_tip_ps, color = "Site", shape = "Timepoint", label.tips = "Order", text.size = 3 )
+
+
+
 ```
+Relevant bee bread microbiome literature: 
 
-
-#condense by tips and taxonomy
-bb16S_bac_rarefy_tip_merged<-tip_glom(physeq = bb16S_bac_rarefy, h = 0.2)
-
-bb16S_bac_rarefy_tax_merged<-tax_glom(physeq = bb16S_bac_rarefy, taxrank = "Genus")
-bb16S_bac_rarefy_tax_merged_F<-tax_glom(physeq = bb16S_bac_rarefy, taxrank = "Genus", NArm = F)
-
-common_taxa(phyloseq_obj = bb16S_bac_rarefy_tax_merged_F, treatment = "Site", n = 'all')
-common_taxa(phyloseq_obj = bb16S_bac_rarefy, treatment = "Site", n = 'all')
-
-
-
-taxa_core_graph(phyloseq_obj = bb16S_bac_rarefy, treatment = "Site")
-
-#group at genus and re run.
-bb16S_bac_rarefy_tip_merged<-tip_glom(physeq = bb16S_bac_rarefy, h = 0.2)
-
-
-
-unique_taxa(phyloseq_obj = bb16S_bac_rarefy_tip_merged, treatment = "Site")
-
-
-tax_prop_out<-taxa_proportions(bb16S_bac_rarefy_tip_merged, 'Class', treatment = c('Site'))
-
-
-ggplot(data = tax_prop_out, aes(Site, Proportion, fill = Class)) +
-   geom_bar(stat='identity')
-
-unique_taxa(phyloseq_obj = bb16S_bac_rarefy_tip_merged, treatment = "Region")
-unique_taxa(phyloseq_obj = bb16S_bac_rarefy_tip_merged, treatment = "Treatment")
-
-common_taxa(phyloseq_obj = bb16S_bac_rarefy, treatment = "Site", n = "all")
-common_taxa(phyloseq_obj = bb16S_bac_rarefy, treatment = "Site")
-
+DOI: https://doi.org/10.1128/genomeA.00247-18
 
