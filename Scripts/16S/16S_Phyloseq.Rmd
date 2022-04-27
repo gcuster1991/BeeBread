@@ -564,8 +564,8 @@ bb16S_bac_rarefy_tax_genus<-tax_glom(physeq = bb16S_bac_rarefy, taxrank = "Genus
 core_genus<-taxa_core(phyloseq_obj = bb16S_bac_rarefy_tax_genus, treatment = "Site", frequency = 0.90, abundance_threshold = 0.00001 )
 core_asv<-taxa_core(phyloseq_obj = bb16S_bac_rarefy, treatment = "Site", frequency = 0.90, abundance_threshold = 0.00001 ) 
 #plot core for exploratory purposes
-plot_tree(core_genus, color = "Site", shape = "Timepoint", label.tips = "Order")
-plot_tree(core_asv, color = "Site", shape = "Timepoint", label.tips = "Order" )
+plot_tree(core_genus, color = "Site", shape = "Timepoint", label.tips = "Genus")
+plot_tree(core_asv, color = "Site", shape = "Timepoint", label.tips = "Genus" )
 #plot bars for exploratory purposes. Many unknowns at genus level and family level
 plot_bar(core_genus, x = "Region_Site", fill = "Order") + scale_fill_manual(values = col_vector) +geom_bar(stat="identity")
 plot_bar(core_asv, x = "Region_Site", fill = "Order") + scale_fill_manual(values = col_vector) +geom_bar(stat="identity")
@@ -601,7 +601,7 @@ Class:
 
 ```{r}
 #Determine those taxa unique to a site at Genus level
-unique_genera_to_region_tax<-unique_taxa(phyloseq_obj = bb16S_bac_rarefy_tax_genus, treatment = "Region", below = 3)
+unique_genera_to_region_tax<-unique_taxa(phyloseq_obj = bb16S_bac_rarefy_tax_genus, treatment = "Region")
 unique_genera_to_site_tax<-unique_taxa(phyloseq_obj = bb16S_bac_rarefy_tax_genus, treatment = "Site")
 #asv level
 unique_asv_to_region_tax<-unique_taxa(phyloseq_obj = bb16S_bac_rarefy, treatment = "Region")
