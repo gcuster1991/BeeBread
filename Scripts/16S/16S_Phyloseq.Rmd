@@ -214,11 +214,11 @@ sd_adonis$Site <-as.factor(sd_adonis$Site)
 dist<-phyloseq::distance(bb16S_bac_ML, method =  "bray")
 
 #full model with no strata arguemnt. Essentiall the effect of each main effect without controlling for any potential groups. 
-adonis(dist ~  Site * Treatment * Timepoint, data= sd_adonis, permutations = 10000)
+adonis2(dist ~  Site * Treatment * Timepoint, data= sd_adonis, permutations = 10000)
 #this model explores the effect of Site, treatment and time point and restricts permutations to time points. 
-adonis(dist ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Timepoint, permutations = 10000)
+adonis2(dist ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Timepoint, permutations = 10000)
 #this model explores the effect of Site, treatment and time point and restricts permutations sites. 
-adonis(dist ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
+adonis2(dist ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
 
 #another way to specify the same model using adonis2. Both provide same results as would be expected. No need to run again, merely a sanity check.
 #perm<-how(nperm = 10000)
@@ -228,11 +228,11 @@ adonis(dist ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis
 #weighted unifrac distance
 dist.uf<-phyloseq::distance(bb16S_bac_ML, method =  "wunifrac")
 #full model with no strata argument, essentially the effect of each main effect without controlling for any potential groups. 
-adonis(dist.uf ~  Site * Treatment * Timepoint, data= sd_adonis, permutations = 10000)
+adonis2(dist.uf ~  Site * Treatment * Timepoint, data= sd_adonis, permutations = 10000)
 #this model explores the effect of Site, treatment and time point and restricts permutations to time points. 
-adonis(dist.uf ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Timepoint, permutations = 10000)
+adonis2(dist.uf ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Timepoint, permutations = 10000)
 #this model explores the effect of Site, treatment and time point and restricts permutations sites. 
-adonis(dist.uf ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
+adonis2(dist.uf ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
 
 pairwise.adonis2(dist ~ Treatment + Timepoint, strata = "Site",  data= sd_adonis, nperm = 1000)
 
@@ -258,7 +258,7 @@ sd_adonis$Site <-as.factor(sd_adonis$Site)
 dist<-phyloseq::distance(bb16S_bac_ML_A, method =  "bray")
 
 #full models with no strata 
-adonis(dist ~  Site * Treatment, data= sd_adonis, permutations = 10000)
+adonis2(dist ~  Site * Treatment, data= sd_adonis, permutations = 10000)
 adonis(dist ~   Treatment * Site, data= sd_adonis, permutations = 10000)
 #models with strata to control for site differences
 adonis(dist ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
@@ -285,18 +285,18 @@ sd_adonis$Site <-as.factor(sd_adonis$Site)
 dist<-phyloseq::distance(bb16S_bac_ML_B, method =  "bray")
 
 #full models with no strata 
-adonis(dist ~  Site * Treatment, data= sd_adonis, permutations = 10000)
-adonis(dist ~   Treatment * Site, data= sd_adonis, permutations = 10000)
+adonis2(dist ~  Site * Treatment, data= sd_adonis, permutations = 10000)
+adonis2(dist ~   Treatment * Site, data= sd_adonis, permutations = 10000)
 #models with strata to control for site differences
-adonis(dist ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
-adonis(dist ~  Treatment * Site, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
+adonis2(dist ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
+adonis2(dist ~  Treatment * Site, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
 
 #weighted unifrac distance
-dist.uf<-phyloseq::distance(bb16S_bac_ML_A, method =  "wunifrac")
+dist.uf<-phyloseq::distance(bb16S_bac_ML_B, method =  "wunifrac")
 #full model with no strata argument, essentially the effect of each main effect without controlling for any potential groups. 
-adonis(dist.uf ~  Site * Treatment,  data= sd_adonis, permutations = 10000)
+adonis2(dist.uf ~  Site * Treatment,  data= sd_adonis, permutations = 10000)
 #this model explores the effect of Site, treatment and time point and restricts permutations sites. 
-adonis(dist.uf ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
+adonis2(dist.uf ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
 ```
 Time point 2 (post-treatment): Site was again a significant predictor (r2 of 0.60) and treatment was borderline significant (r2 of 0.03). However, when the effect of site was controlled for by using strata = site, treatment becomes significant (r2 of 0.039). So when controlling for site differences, the treatments contribute to differences in microbiome structure. This was not the case for weighted unifrac dissimilarity. Treatment was not a significant predictor of community dissimilarity regardless of whether or not site differences were controlled for. 
 
@@ -510,7 +510,6 @@ micrUBIfuns::plot_taxa_heatmap(baruta_Site_indicators_ps_object_B_merged, rm_na 
 micrUBIfuns::plot_taxa_heatmap(baruta_Site_indicators_ps_object_B_merged, rm_na = F,scale_by = "taxa", cluster_rows=F, cluster_columns = T ,column_labels = taxa_names(baruta_Site_indicators_ps_object_B), row_dend_reorder =TRUE, col= col_fun)
 ```
 
-
 Exploratory tree of indicators from initial Baruta and then split by timpeoints. 
 ```{r}
 plot_tree(baruta_Site_indicators_ps_object, color="Site", shape = "Timepoint", label.tips = "taxa_names")
@@ -571,7 +570,7 @@ bb16S_bac_rarefy_tax_genus<-tax_glom(physeq = bb16S_bac_rarefy, taxrank = "Genus
 core_genus<-taxa_core(phyloseq_obj = bb16S_bac_rarefy_tax_genus, treatment = "Site", frequency = 0.90, abundance_threshold = 0.00001 )
 core_asv<-taxa_core(phyloseq_obj = bb16S_bac_rarefy, treatment = "Site", frequency = 0.90, abundance_threshold = 0.00001 ) 
 #plot core for exploratory purposes
-plot_tree(core_genus, color = "Site", shape = "Timepoint", label.tips = "Genus")
+plot_tree(core_genus, color = "Site", shape = "Timepoint", label.tips = "Family")
 plot_tree(core_asv, color = "Site", shape = "Timepoint", label.tips = "Genus" )
 #plot bars for exploratory purposes. Many unknowns at genus level and family level
 plot_bar(core_genus, x = "Region_Site", fill = "Order") + scale_fill_manual(values = col_vector) +geom_bar(stat="identity")
