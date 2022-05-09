@@ -207,6 +207,7 @@ https://ichthyology.usm.edu/courses/multivariate/feb_7.pdf
 Both with Bray-curtis and Unifrac distances. 
 ```{r}
 #extract data from phyloseq object
+tab_adonis<-data.frame(otu_table(bb16S_bac_ML))
 sd_adonis<-data.frame(sample_data(bb16S_bac_ML))
 sd_adonis$Treatment <-as.factor(sd_adonis$Treatment)
 sd_adonis$Site <-as.factor(sd_adonis$Site)
@@ -233,7 +234,13 @@ adonis(dist.uf ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_ado
 #this model explores the effect of Site, treatment and time point and restricts permutations sites. 
 adonis(dist.uf ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
 
+pairwise.adonis2(dist ~ Treatment + Timepoint, strata = "Site",  data= sd_adonis, nperm = 1000)
+
+
+pairwise.adonis2(dist.uf ~ Treatment + Timepoint, strata = "Site",  data= sd_adonis, nperm = 1000)
 ```
+
+
 Based on results, site is the main determinant of microbiome composition (r2 of 0.51 and r2 of 0.38, BC and weighted unifrac, respectively). Time point is also significant but explains much less of the variation (r2 of 0.063 and r2 of 0.021, BC and weighted unifrac, respectively). Treatment is only significant for BC (r2 of 0.024). Both remain significant for BC dissimilarity when site and timepoint are controlled for using the strata argument. However, when site is controled for using weighted unifrac dissimilarity, the only significant predictor is the site x treatment interaction. Next, I will split by time point and examine the effect of each treatment while controlling for site effects using the strata argument (strata = site). 
 
 Take away: Site is the strongest predictor of community dissimilarity. This is true for both Bray-Curtis and weighted unifrac distances. 
@@ -262,7 +269,7 @@ dist.uf<-phyloseq::distance(bb16S_bac_ML_A, method =  "wunifrac")
 #full model with no strata argument, essentially the effect of each main effect without controlling for any potential groups. 
 adonis(dist.uf ~  Site * Treatment,  data= sd_adonis, permutations = 10000)
 #this model explores the effect of Site, treatment and time point and restricts permutations sites. 
-adonis(dist.uf ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
+
 ```
 Time point 1 (pre-treatment): Significant effect of Site (r2 of 0.73). Treatment is also a significant predictor (r2 of 0.04). This is something to note because this is supposed to be before treatment was applied. When permutations are restricted to within site, treatment and site remain significant. For weighted unifrac, treatment is insignificant (r2 of 0.025) whether site is controlled for or not. 
 
@@ -569,6 +576,10 @@ plot_tree(core_asv, color = "Site", shape = "Timepoint", label.tips = "Genus" )
 #plot bars for exploratory purposes. Many unknowns at genus level and family level
 plot_bar(core_genus, x = "Region_Site", fill = "Order") + scale_fill_manual(values = col_vector) +geom_bar(stat="identity")
 plot_bar(core_asv, x = "Region_Site", fill = "Order") + scale_fill_manual(values = col_vector) +geom_bar(stat="identity")
+plot_bar(core_asv, x = "Treatment_Timepoint", fill = "Order") + scale_fill_manual(values = col_vector) +geom_bar(stat="identity")
+
+
+
 #extract taxonomy from core genus phyloseqe object
 #core_genus_taxonomy <- data.frame(tax_table(core_genus))
 
@@ -587,6 +598,23 @@ ggplot(pie_data, aes(x="", y=Frequency, fill=Class)) +
   geom_bar(stat="identity", width=1, color="white") +
   coord_polar("y", start=0) +
   theme_void() + scale_fill_manual(values = col_vector)  + ggtitle("Core genera at Class")
+
+
+#core adonis
+tab_adonis<-data.frame(otu_table(core_asv))
+sd_adonis<-data.frame(sample_data(core_asv))
+sd_adonis$Treatment <-as.factor(sd_adonis$Treatment)
+sd_adonis$Site <-as.factor(sd_adonis$Site)
+dist<-phyloseq::distance(core_asv, method =  "bray")
+
+#full model with no strata arguemnt. Essentiall the effect of each main effect without controlling for any potential groups. 
+#full model with no strata arguemnt. Essentiall the effect of each main effect without controlling for any potential groups. 
+adonis2(dist ~  Site * Treatment * Timepoint, data= sd_adonis, permutations = 10000)
+#this model explores the effect of Site, treatment and time point and restricts permutations to time points. 
+adonis2(dist ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Timepoint, permutations = 10000)
+#this model explores the effect of Site, treatment and time point and restricts permutations sites. 
+adonis2(dist ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
+
 
 ```
 Core take aways: The core was defined as those taxa occuring in atleast 90% of samples and having a relative abudnance of greater than 0.00001. When collapsed at the genus level, there are 33 members in the core. Using ASVs, the core consists of 49 members. Looking at the phylogenetic trees, the members of Rickettsiales condense into a single tip at the genus level. Blast-ing this sequence returns plant DNA. I wonder if this is a common plant visited by these bees? Either way, the core accoutns for a mean 79% +/- 0.007 (sd) of the total reads in each sample. 
