@@ -59,8 +59,9 @@ seq_df_w_OTUID<-data.frame(OTUID = 1:ntaxa(bb16S_orig), Sequence = taxa_names(bb
 taxa_names(bb16S_orig)<-paste("OTU_" , 1:ntaxa(bb16S_orig), sep = "")
 
 #remove chloroplast
-#60 chloroplast taxa
-bb16S_orig_nc<-subset_taxa(bb16S_orig, Class != "Chloroplast")
+#745 chloroplast taxa
+bb16S_orig_nc<-subset_taxa(bb16S_orig, Order != "Chloroplast")
+
 
 #2257 bacterial taxa - 9 non-bacteria removed. 
 bb16S_bac<-subset_taxa(bb16S_orig_nc, Kingdom == "Bacteria")
@@ -82,8 +83,8 @@ First, check sample depths for rarefaction. Minimum sample depth is a bit over 2
 ```{r}
 set.seed(11)
 sort(sample_sums(ps_wo_control))
-bb16S_bac_rarefy<-rarefy_even_depth(ps_wo_control, sample.size = 20000, rngseed = 14, trimOTUs = T)
-#300 otus were removed during rarefaction. 
+bb16S_bac_rarefy<-rarefy_even_depth(ps_wo_control, sample.size = 7000, rngseed = 14, trimOTUs = T)
+#360 otus were removed during rarefaction. 
 
 #To move forward, we can hellinger transform and go from there.
 bb16S_bac_hellinger<-transform_sample_counts(ps_wo_control, function(x) sqrt(x / sum(x)))
@@ -214,11 +215,11 @@ sd_adonis$Site <-as.factor(sd_adonis$Site)
 dist<-phyloseq::distance(bb16S_bac_ML, method =  "bray")
 
 #full model with no strata arguemnt. Essentiall the effect of each main effect without controlling for any potential groups. 
-adonis2(dist ~  Site * Treatment * Timepoint, data= sd_adonis, permutations = 10000)
+adonis2(dist ~  Site * Treatment * Timepoint, data= sd_adonis, permutations = 1000)
 #this model explores the effect of Site, treatment and time point and restricts permutations to time points. 
-adonis2(dist ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Timepoint, permutations = 10000)
+adonis2(dist ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Timepoint, permutations = 1000)
 #this model explores the effect of Site, treatment and time point and restricts permutations sites. 
-adonis2(dist ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
+adonis2(dist ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
 
 #another way to specify the same model using adonis2. Both provide same results as would be expected. No need to run again, merely a sanity check.
 #perm<-how(nperm = 10000)
@@ -228,11 +229,11 @@ adonis2(dist ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adoni
 #weighted unifrac distance
 dist.uf<-phyloseq::distance(bb16S_bac_ML, method =  "wunifrac")
 #full model with no strata argument, essentially the effect of each main effect without controlling for any potential groups. 
-adonis2(dist.uf ~  Site * Treatment * Timepoint, data= sd_adonis, permutations = 10000)
+adonis2(dist.uf ~  Site * Treatment * Timepoint, data= sd_adonis, permutations = 1000)
 #this model explores the effect of Site, treatment and time point and restricts permutations to time points. 
-adonis2(dist.uf ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Timepoint, permutations = 10000)
+adonis2(dist.uf ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Timepoint, permutations = 1000)
 #this model explores the effect of Site, treatment and time point and restricts permutations sites. 
-adonis2(dist.uf ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
+adonis2(dist.uf ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
 
 pairwise.adonis2(dist ~ Treatment + Timepoint, strata = "Site",  data= sd_adonis, nperm = 1000)
 
@@ -258,16 +259,20 @@ sd_adonis$Site <-as.factor(sd_adonis$Site)
 dist<-phyloseq::distance(bb16S_bac_ML_A, method =  "bray")
 
 #full models with no strata 
-adonis2(dist ~  Site * Treatment, data= sd_adonis, permutations = 10000)
-adonis(dist ~   Treatment * Site, data= sd_adonis, permutations = 10000)
+adonis2(dist ~  Site * Treatment, data= sd_adonis, permutations = 1000)
+adonis2(dist ~   Treatment * Site, data= sd_adonis, permutations = 1000)
 #models with strata to control for site differences
-adonis(dist ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
-adonis(dist ~  Treatment * Site, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
+adonis2(dist ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
+adonis2(dist ~  Treatment * Site, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
+#additional analysis of treatment effects when controlling for site.
+adonis2(dist ~  Treatment , data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
+#and pairwise
+pairwise.adonis2(dist ~ Treatment, strata = "Site",  data= sd_adonis, nperm = 1000)
 
 #weighted unifrac distance
 dist.uf<-phyloseq::distance(bb16S_bac_ML_A, method =  "wunifrac")
 #full model with no strata argument, essentially the effect of each main effect without controlling for any potential groups. 
-adonis(dist.uf ~  Site * Treatment,  data= sd_adonis, permutations = 10000)
+adonis(dist.uf ~  Site * Treatment,  data= sd_adonis, permutations = 1000)
 #this model explores the effect of Site, treatment and time point and restricts permutations sites. 
 
 ```
@@ -285,18 +290,22 @@ sd_adonis$Site <-as.factor(sd_adonis$Site)
 dist<-phyloseq::distance(bb16S_bac_ML_B, method =  "bray")
 
 #full models with no strata 
-adonis2(dist ~  Site * Treatment, data= sd_adonis, permutations = 10000)
-adonis2(dist ~   Treatment * Site, data= sd_adonis, permutations = 10000)
+adonis2(dist ~  Site * Treatment, data= sd_adonis, permutations = 1000)
+adonis2(dist ~   Treatment * Site, data= sd_adonis, permutations = 1000)
 #models with strata to control for site differences
-adonis2(dist ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
-adonis2(dist ~  Treatment * Site, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
+adonis2(dist ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
+adonis2(dist ~  Treatment * Site, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
+#additional analysis of treatment effects when controling for site.
+adonis2(dist ~  Treatment , data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
+#and pairwise
+pairwise.adonis2(dist ~ Treatment, strata = "Site",  data= sd_adonis, nperm = 1000)
 
 #weighted unifrac distance
 dist.uf<-phyloseq::distance(bb16S_bac_ML_B, method =  "wunifrac")
 #full model with no strata argument, essentially the effect of each main effect without controlling for any potential groups. 
-adonis2(dist.uf ~  Site * Treatment,  data= sd_adonis, permutations = 10000)
+adonis2(dist.uf ~  Site * Treatment,  data= sd_adonis, permutations = 1000)
 #this model explores the effect of Site, treatment and time point and restricts permutations sites. 
-adonis2(dist.uf ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
+adonis2(dist.uf ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
 ```
 Time point 2 (post-treatment): Site was again a significant predictor (r2 of 0.60) and treatment was borderline significant (r2 of 0.03). However, when the effect of site was controlled for by using strata = site, treatment becomes significant (r2 of 0.039). So when controlling for site differences, the treatments contribute to differences in microbiome structure. This was not the case for weighted unifrac dissimilarity. Treatment was not a significant predictor of community dissimilarity regardless of whether or not site differences were controlled for. 
 
@@ -315,7 +324,7 @@ cca_mod<-cca(tab_adonis ~ Site + Timepoint + Treatment, sd_adonis)
 anova.cca(cca_mod)
 #significant global model so lets look at individual parameters
 drop1(cca_mod, test = "perm", permutations = 100)
-0#Site and time point are significant but treatment is not. We will not include treatment in our constrained ordination.
+#Site and time point are significant but treatment is not. We will not include treatment in our constrained ordination.
 ```
 
 Constrained ordination using CAP
@@ -562,11 +571,11 @@ col_vector <- c("#000000", "#FFFF00", "#1CE6FF", "#FF34FF", "#FF4A46", "#008941"
 #Core and unique taxa
 ```{r}
 #calculate core at genus level
-#388 members
+#360 members
 bb16S_bac_rarefy_tax_genus<-tax_glom(physeq = bb16S_bac_rarefy, taxrank = "Genus", NArm = F)
 #calculate core
-#genus - 33 members
-#asvs - 49 members
+#genus - 31 members
+#asvs - 40 members
 core_genus<-taxa_core(phyloseq_obj = bb16S_bac_rarefy_tax_genus, treatment = "Site", frequency = 0.90, abundance_threshold = 0.00001 )
 core_asv<-taxa_core(phyloseq_obj = bb16S_bac_rarefy, treatment = "Site", frequency = 0.90, abundance_threshold = 0.00001 ) 
 #plot core for exploratory purposes
@@ -584,7 +593,7 @@ plot_bar(core_asv, x = "Treatment_Timepoint", fill = "Order") + scale_fill_manua
 
 #percentage of reads accounted for by core. 
 summary(sample_sums(core_genus)/25000)
-
+sd(sample_sums(core_genus)/25000)
 #taxonomic composition
 table(tax_table(core_genus)[,2])
 table(tax_table(core_genus)[,3])
@@ -606,24 +615,67 @@ sd_adonis$Treatment <-as.factor(sd_adonis$Treatment)
 sd_adonis$Site <-as.factor(sd_adonis$Site)
 dist<-phyloseq::distance(core_asv, method =  "bray")
 
-#full model with no strata arguemnt. Essentiall the effect of each main effect without controlling for any potential groups. 
-#full model with no strata arguemnt. Essentiall the effect of each main effect without controlling for any potential groups. 
-adonis2(dist ~  Site * Treatment * Timepoint, data= sd_adonis, permutations = 10000)
+#full model with no strata argument. Essentially the effect of each main effect without controlling for any potential groups. 
+adonis2(dist ~  Site * Treatment * Timepoint, data= sd_adonis, permutations = 1000)
 #this model explores the effect of Site, treatment and time point and restricts permutations to time points. 
-adonis2(dist ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Timepoint, permutations = 10000)
+adonis2(dist ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Timepoint, permutations = 1000)
 #this model explores the effect of Site, treatment and time point and restricts permutations sites. 
-adonis2(dist ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
+adonis2(dist ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
 
+#split by time point and re run
 
+core_asv_t1 <- subset_samples(core_asv, Timepoint =="A")
+core_asv_t2 <- subset_samples(core_asv, Timepoint =="B")
+
+#core adonis T1
+tab_adonis<-data.frame(otu_table(core_asv_t1))
+sd_adonis<-data.frame(sample_data(core_asv_t1))
+sd_adonis$Treatment <-as.factor(sd_adonis$Treatment)
+sd_adonis$Site <-as.factor(sd_adonis$Site)
+dist<-phyloseq::distance(core_asv_t1, method =  "bray")
+
+#full model with no strata argument. Essentially the effect of each main effect without controlling for any potential groups. 
+adonis2(dist ~  Site * Treatment, data= sd_adonis, permutations = 1000)
+
+#core adonis T2
+tab_adonis<-data.frame(otu_table(core_asv_t2))
+sd_adonis<-data.frame(sample_data(core_asv_t2))
+sd_adonis$Treatment <-as.factor(sd_adonis$Treatment)
+sd_adonis$Site <-as.factor(sd_adonis$Site)
+dist<-phyloseq::distance(core_asv_t2, method =  "bray")
+
+#full model with no strata argument. Essentially the effect of each main effect without controlling for any potential groups. 
+adonis2(dist ~  Site * Treatment, data= sd_adonis, permutations = 1000)
 ```
-Core take aways: The core was defined as those taxa occuring in atleast 90% of samples and having a relative abudnance of greater than 0.00001. When collapsed at the genus level, there are 33 members in the core. Using ASVs, the core consists of 49 members. Looking at the phylogenetic trees, the members of Rickettsiales condense into a single tip at the genus level. Blast-ing this sequence returns plant DNA. I wonder if this is a common plant visited by these bees? Either way, the core accoutns for a mean 79% +/- 0.007 (sd) of the total reads in each sample. 
+Core take aways: The core was defined as those taxa occuring in atleast 90% of samples and having a relative abudnance of greater than 0.00001. When collapsed at the genus level, there are 33 members in the core. Using ASVs, the core consists of 49 members. Looking at the phylogenetic trees, the members of Rickettsiales condense into a single tip at the genus level. Blast-ing this sequence returns plant DNA. I wonder if this is a common plant visited by these bees? Either way, the core accoutns for a mean 27% +/- 0.004 (sd) of the total reads in each sample. 
 
 Taxonomic composition of core:
 Phylum:
-20 proteobacteria, 8 firmicutes, 1 cyanobacteria, 2 bacteriodota, 2 actinobacteira.
+Actinobacteriota     Bacteroidota       Firmicutes   Proteobacteria 
+               2                2                8               19 
 
 Class:
-12 members of gammaproteobacteria, 8 of alphaproteobacteria, 6 bacilli, 2 bacteriodia, clostridia, and actinobacteria, 1 cynanobacteria.
+     Actinobacteria Alphaproteobacteria             Bacilli         Bacteroidia          Clostridia Gammaproteobacteria 
+                  2                   8                   6                   2                   2                  11 
+
+non-core taxa
+```{r}
+rownames(tax_table(core_asv))
+
+badTaxa <- rownames(tax_table(core_asv))
+goodTaxa <- setdiff(taxa_names(bb16S_bac_rarefy), badTaxa)
+non_core_asv  <- prune_taxa(goodTaxa, bb16S_bac_rarefy)
+
+tab_adonis<-data.frame(otu_table(non_core_asv))
+sd_adonis<-data.frame(sample_data(non_core_asv))
+sd_adonis$Treatment <-as.factor(sd_adonis$Treatment)
+sd_adonis$Site <-as.factor(sd_adonis$Site)
+dist<-phyloseq::distance(non_core_asv, method =  "bray")
+
+#full model with no strata argument. Essentially the effect of each main effect without controlling for any potential groups. 
+adonis2(dist ~  Site * Treatment * Timepoint, data= sd_adonis, permutations = 1000)
+#this model explores the effect of Site, treatment and time point and restricts permutations to
+```
 
 
 ```{r}
