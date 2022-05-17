@@ -60,7 +60,7 @@ taxa_names(bb16S_orig)<-paste("OTU_" , 1:ntaxa(bb16S_orig), sep = "")
 
 #remove chloroplast
 #745 chloroplast taxa
-bb16S_orig_nc<-subset_taxa(bb16S_orig, Order != "Chloroplast")
+bb16S_orig_nc<-subset_taxa(bb16S_orig, Order != "Chloroplast") 
 bb16S_orig_nc<-subset_taxa(bb16S_orig_nc, Family != "Mitochondria")
 
 
