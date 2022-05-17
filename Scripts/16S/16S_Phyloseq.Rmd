@@ -59,12 +59,11 @@ seq_df_w_OTUID<-data.frame(OTUID = 1:ntaxa(bb16S_orig), Sequence = taxa_names(bb
 taxa_names(bb16S_orig)<-paste("OTU_" , 1:ntaxa(bb16S_orig), sep = "")
 
 #remove chloroplast
-#745 chloroplast taxa
-bb16S_orig_nc<-subset_taxa(bb16S_orig, Order != "Chloroplast") 
-bb16S_orig_nc<-subset_taxa(bb16S_orig_nc, Family != "Mitochondria")
+#642 chloroplast or mitochondiral taxa
+bb16S_orig_nc<-subset_taxa(bb16S_orig, Family!= "mitochondria" | is.na(Family) & Order!="Chloroplast" | is.na(Order))
 
 
-#1176 bacterial taxa - 9 non-bacteria removed. 
+#1673 bacterial taxa - 9 non-bacteria removed. 
 bb16S_bac<-subset_taxa(bb16S_orig_nc, Kingdom == "Bacteria")
 #9 archaea
 bb16S_arch<-subset_taxa(bb16S_orig_nc, Kingdom == "Archaea")
@@ -84,8 +83,8 @@ First, check sample depths for rarefaction. Minimum sample depth is a bit over 2
 ```{r}
 set.seed(11)
 sort(sample_sums(ps_wo_control))
-bb16S_bac_rarefy<-rarefy_even_depth(ps_wo_control, sample.size =1000, rngseed = 14, trimOTUs = T)
-#418 otus were removed during rarefaction. 
+bb16S_bac_rarefy<-rarefy_even_depth(ps_wo_control, sample.size =7000, rngseed = 14, trimOTUs = T)
+#403 otus were removed during rarefaction. 
 
 #To move forward, we can hellinger transform and go from there.
 bb16S_bac_hellinger<-transform_sample_counts(ps_wo_control, function(x) sqrt(x / sum(x)))
