@@ -189,7 +189,7 @@ summary(mod)
 TukeyHSD(mod, "Site")
 plot(TukeyHSD(mod, "Site"), las=1, cex.axis = 0.4)
 
-plot_richness(bb16S_bac_rarefy, x = "Site", measures = c("Observed"), color = "Timepoint") + geom_boxplot() + ggtitle("Site by treatment")
+plot_richness(bb16S_bac_rarefy, x = "Treatment", measures = c("Observed"), color = "Site") + geom_boxplot() + ggtitle("Site by treatment")
 plot_richness(bb16S_bac_rarefy, x = "Site", measures = c("Observed"), color = "Treatment") + geom_boxplot() + ggtitle("Site by treatment")
 ```
 Summary of alpha diversity: Rarefying at 7k reads sufficiently captures the diversity of each sample, as demonstrated by the plateau in our rarefaction curves. Site is the most useful predictor for determining differences in alpha diversity. Timepoint is also a significant predictor. Several interactions with site are present for all metrics of alpha diversity. No clear trends in alpha diversity differences. Some sites display shifts responding to treatment, while others do not. Some sites show increased alpha diversity at timepoint 2 and others the opposite. 
