@@ -216,14 +216,14 @@ sd_adonis$Site <-as.factor(sd_adonis$Site)
 dist<-phyloseq::distance(bb16S_bac_ML, method =  "bray")
 
 #full model with no strata arguemnt. Essentiall the effect of each main effect without controlling for any potential groups. 
-adonis2(dist ~  Site * Treatment * Timepoint, data= sd_adonis, permutations = 1000)
+adonis2(dist ~  Site * Treatment * Timepoint, data= sd_adonis, permutations = 10000)
 #this model explores the effect of Site, treatment and time point and restricts permutations to time points. 
 adonis2(dist ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Timepoint, permutations = 1000)
 #this model explores the effect of Site, treatment and time point and restricts permutations sites. 
-adonis2(dist ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
+adonis2(dist ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
 #pairwise with site strata arugment
 pairwise.adonis2(dist ~ Treatment + Timepoint, strata = "Site",  data= sd_adonis, nperm = 10000)
-
+pairwise.adonis2(dist ~ Treatment + Timepoint,  data= sd_adonis, nperm = 10000)
 
 #another way to specify the same model using adonis2. Both provide same results as would be expected. No need to run again, merely a sanity check.
 #perm<-how(nperm = 10000)
@@ -598,6 +598,7 @@ plot_bar(core_asv, x = "Treatment_Timepoint", fill = "Order") + scale_fill_manua
 #percentage of reads accounted for by core. 
 summary(sample_sums(core_genus)/1100)
 sd(sample_sums(core_genus)/1100)
+hist(sample_sums(core_genus)/1100, breaks = 20, main = "Percent of total reads \n accounted for by the core", xlab = "Proportion")
 #taxonomic composition
 table(tax_table(core_genus)[,2])
 table(tax_table(core_genus)[,3])
@@ -679,6 +680,7 @@ sd_adonis$Site <-as.factor(sd_adonis$Site)
 dist<-phyloseq::distance(non_core_asv, method =  "bray")
 
 #full model with no strata argument. Essentially the effect of each main effect without controlling for any potential groups. 
+adonis2(dist ~  Site * Treatment * Timepoint, data= sd_adonis, permutations = 1000)
 adonis2(dist ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
 #this model explores the effect of Site, treatment and time point and restricts permutations to
 pairwise.adonis2(dist ~ Treatment, strata = "Site",  data= sd_adonis, nperm = 1000)
@@ -698,6 +700,7 @@ dist<-phyloseq::distance(noncore_asv_t1, method =  "bray")
 
 #full model with no strata argument. Essentially the effect of each main effect without controlling for any potential groups. 
 adonis2(dist ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
+pairwise.adonis2(dist ~ Treatment, strata = "Site",  data= sd_adonis, nperm = 1000)
 
 #core adonis T2
 tab_adonis<-data.frame(otu_table(noncore_asv_t2))
@@ -707,9 +710,10 @@ sd_adonis$Site <-as.factor(sd_adonis$Site)
 dist<-phyloseq::distance(noncore_asv_t2, method =  "bray")
 
 #full model with no strata argument. Essentially the effect of each main effect without controlling for any potential groups. 
+adonis2(dist ~  Site * Treatment, data= sd_adonis, permutations = 1000)
 adonis2(dist ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
 
-pairwise.adonis2(dist ~ Treatment, strata = "Site",  data= sd_adonis, nperm = 1000)
+pairwise.adonis2(dist ~ Treatment, strata = "Site",  data= sd_adonis, nperm = 10000)
 ```
 
 
@@ -722,12 +726,12 @@ unique_asv_to_region_tax<-unique_taxa(phyloseq_obj = bb16S_bac_rarefy, treatment
 unique_asv_to_site_tax<-unique_taxa(phyloseq_obj = bb16S_bac_rarefy, treatment = "Site")
 
 #genera
-#186 genera are unique to one region. 176 genera are unique to a site. This means that only 10 Taxa unique to a region are not shared for the sites within that region. 
+#155 genera are unique to one region. 163 genera are unique to a site.  
 unique_genera_to_site_tax_ps<-subset_taxa(bb16S_bac_rarefy, taxa_names(bb16S_bac_rarefy) %in% unlist(unique_genera_to_site_tax))
 unique_genera_to_region_tax_ps<-subset_taxa(bb16S_bac_rarefy, taxa_names(bb16S_bac_rarefy) %in% unlist(unique_genera_to_region_tax))
 
 #asv
-#1510 asvs are unique to one region. 1484 asvs are unique to a site. This means that only 26 asvs unique to a region are not shared for the sites within that region. 
+#620 asvs are unique to one region. 608 asvs are unique to a site. This means that only 26 asvs unique to a region are not shared for the sites within that region. 
 unique_asv_to_site_tax_ps<-subset_taxa(bb16S_bac_rarefy, taxa_names(bb16S_bac_rarefy) %in% unlist(unique_asv_to_site_tax))
 unique_asv_to_region_tax_ps<-subset_taxa(bb16S_bac_rarefy, taxa_names(bb16S_bac_rarefy) %in% unlist(unique_asv_to_region_tax))
 
@@ -740,9 +744,10 @@ plot_tree(unique_genera_to_region_tax_ps, color = "Site", shape = "Timepoint", l
 
 
 #percentage of reads accounted for by core. 
-summary(sample_sums(unique_genera_to_site_tax_ps)/1000)
-sd(sample_sums(unique_genera_to_site_tax_ps)/1000)
-summary(sample_sums(unique_genera_to_region_tax_ps)/1000)
+summary(sample_sums(unique_genera_to_site_tax_ps)/1100)
+sd(sample_sums(unique_genera_to_site_tax_ps)/1100)
+
+summary(sample_sums(unique_genera_to_region_tax_ps)/1100)
 
 
 #taxonomic composition
