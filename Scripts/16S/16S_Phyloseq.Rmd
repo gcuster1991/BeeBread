@@ -59,11 +59,11 @@ seq_df_w_OTUID<-data.frame(OTUID = 1:ntaxa(bb16S_orig), Sequence = taxa_names(bb
 taxa_names(bb16S_orig)<-paste("OTU_" , 1:ntaxa(bb16S_orig), sep = "")
 
 #remove chloroplast
-#642 chloroplast or mitochondrial taxa
-bb16S_orig_nc<-subset_taxa(bb16S_orig, Family!= "mitochondria" | is.na(Family) & Order!="Chloroplast" | is.na(Order))
+#978 chloroplast or mitochondrial taxa
+bb16S_orig_nc<-subset_taxa(bb16S_orig, Family!= "Mitochondria" | is.na(Family) & Order!="Chloroplast" | is.na(Order))
 
 
-#1673 bacterial taxa - 9 non-bacteria removed. 
+#1337 bacterial taxa - 9 non-bacteria removed. 
 bb16S_bac<-subset_taxa(bb16S_orig_nc, Kingdom == "Bacteria")
 #9 archaea
 bb16S_arch<-subset_taxa(bb16S_orig_nc, Kingdom == "Archaea")
@@ -79,12 +79,12 @@ Examine rarefaction curves. Plateau in most samples under the 5k read mark.
 rarecurve(otu_table(ps_wo_control), step=50, cex=0.5)
 ```
 
-First, check sample depths for rarefaction. Minimum sample depth is a bit over 21k reads, so we will rarefy at 20k.  
+First, check sample depths for rarefaction. Minimum sample depth is right around 7k reads, so we will rarefy at 7k.  
 ```{r}
 set.seed(11)
 sort(sample_sums(ps_wo_control))
-bb16S_bac_rarefy<-rarefy_even_depth(ps_wo_control, sample.size =7000, rngseed = 14, trimOTUs = T)
-#403 otus were removed during rarefaction. 
+bb16S_bac_rarefy<-rarefy_even_depth(ps_wo_control, sample.size =1100, rngseed = 14, trimOTUs = T)
+#517 otus were removed during rarefaction. 
 
 #To move forward, we can hellinger transform and go from there.
 bb16S_bac_hellinger<-transform_sample_counts(ps_wo_control, function(x) sqrt(x / sum(x)))
@@ -120,6 +120,7 @@ Based upon the site and region graphs, it appears that site contains more differ
 
 Statistical testing of alpha diversity metrics. Using ANOVA framework and checking for assumption of normality and correlation in predictors. region and site appear to be associated, so I will drop Region for this exploratory analysis. We can revisit if we decide Region is a more accurate predictor, but it appears that from the graphs above site provides more resolution than region.
 https://www.pluralsight.com/guides/testing-for-relationships-between-categorical-variables-using-the-chi-square-test
+
 ```{r}
 #create alpha diversity table and prep data to include grouping columns
 richness_BB16S_bac<-estimate_richness(bb16S_bac_rarefy, measures = c("Shannon", "Observed", "Chao1"))
@@ -220,6 +221,9 @@ adonis2(dist ~  Site * Treatment * Timepoint, data= sd_adonis, permutations = 10
 adonis2(dist ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Timepoint, permutations = 1000)
 #this model explores the effect of Site, treatment and time point and restricts permutations sites. 
 adonis2(dist ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
+#pairwise with site strata arugment
+pairwise.adonis2(dist ~ Treatment + Timepoint, strata = "Site",  data= sd_adonis, nperm = 10000)
+
 
 #another way to specify the same model using adonis2. Both provide same results as would be expected. No need to run again, merely a sanity check.
 #perm<-how(nperm = 10000)
@@ -235,7 +239,7 @@ adonis2(dist.uf ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_ad
 #this model explores the effect of Site, treatment and time point and restricts permutations sites. 
 adonis2(dist.uf ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
 
-pairwise.adonis2(dist ~ Treatment + Timepoint, strata = "Site",  data= sd_adonis, nperm = 1000)
+
 
 
 pairwise.adonis2(dist.uf ~ Treatment + Timepoint, strata = "Site",  data= sd_adonis, nperm = 1000)
@@ -265,9 +269,6 @@ adonis2(dist ~   Treatment * Site, data= sd_adonis, permutations = 1000)
 adonis2(dist ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
 adonis2(dist ~  Treatment * Site, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
 
-
-#additional analysis of treatment effects when controlling for site.
-adonis2(dist ~  Treatment , data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
 #and pairwise
 pairwise.adonis2(dist ~ Treatment, strata = "Site",  data= sd_adonis, nperm = 1000)
 pairwise.adonis2(dist ~ Treatment, data= sd_adonis, nperm = 1000)
@@ -302,6 +303,7 @@ adonis2(dist ~  Treatment * Site, data= sd_adonis, strata = sd_adonis$Site, perm
 adonis2(dist ~  Treatment , data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
 #and pairwise
 pairwise.adonis2(dist ~ Treatment, strata = "Site",  data= sd_adonis, nperm = 1000)
+pairwise.adonis2(dist ~ Treatment,  data= sd_adonis, nperm = 1000)
 
 #weighted unifrac distance
 dist.uf<-phyloseq::distance(bb16S_bac_ML_B, method =  "wunifrac")
@@ -573,11 +575,11 @@ col_vector <- c("#000000", "#FFFF00", "#1CE6FF", "#FF34FF", "#FF4A46", "#008941"
 #Core and unique taxa
 ```{r}
 #calculate core at genus level
-#302 members
+#325 members
 bb16S_bac_rarefy_tax_genus<-tax_glom(physeq = bb16S_bac_rarefy, taxrank = "Genus", NArm = F)
 #calculate core
 #genus - 28 members
-#asvs - 26 members
+#asvs - 31 members
 core_genus<-taxa_core(phyloseq_obj = bb16S_bac_rarefy_tax_genus, treatment = "Site", frequency = 0.90, abundance_threshold = 0.00001 )
 core_asv<-taxa_core(phyloseq_obj = bb16S_bac_rarefy, treatment = "Site", frequency = 0.90, abundance_threshold = 0.00001 ) 
 #plot core for exploratory purposes
@@ -594,8 +596,8 @@ plot_bar(core_asv, x = "Treatment_Timepoint", fill = "Order") + scale_fill_manua
 #core_genus_taxonomy <- data.frame(tax_table(core_genus))
 
 #percentage of reads accounted for by core. 
-summary(sample_sums(core_genus)/1000)
-sd(sample_sums(core_genus)/1000)
+summary(sample_sums(core_genus)/1100)
+sd(sample_sums(core_genus)/1100)
 #taxonomic composition
 table(tax_table(core_genus)[,2])
 table(tax_table(core_genus)[,3])
@@ -652,13 +654,14 @@ adonis2(dist ~  Site * Treatment, data= sd_adonis, permutations = 1000,  strata 
 Core take aways: The core was defined as those taxa occuring in atleast 90% of samples and having a relative abudnance of greater than 0.00001. When collapsed at the genus level, there are 33 members in the core. Using ASVs, the core consists of 49 members. Looking at the phylogenetic trees, the members of Rickettsiales condense into a single tip at the genus level. Blast-ing this sequence returns plant DNA. I wonder if this is a common plant visited by these bees? Either way, the core accoutns for a mean 27% +/- 0.004 (sd) of the total reads in each sample. 
 
 Taxonomic composition of core:
-Phylum:
-Actinobacteriota     Bacteroidota       Firmicutes   Proteobacteria 
-               1                2                6               19 
+Phylum
 
-Class:
-   Actinobacteria Alphaproteobacteria             Bacilli         Bacteroidia          Clostridia Gammaproteobacteria 
-                  1                   7                   4                   2                   2                  12 
+Actinobacteriota     Bacteroidota       Firmicutes   Proteobacteria 
+               2                1                7               17 
+Class
+
+Actinobacteria          Alphaproteobacteria             Bacilli         Bacteroidia          Clostridia   Gammaproteobacteria 
+                  2                   7                   5                   1                   2                  10 
 
 non-core taxa
 ```{r}
@@ -667,7 +670,7 @@ rownames(tax_table(core_asv))
 badTaxa <- rownames(tax_table(core_asv))
 goodTaxa <- setdiff(taxa_names(bb16S_bac_rarefy), badTaxa)
 non_core_asv  <- prune_taxa(goodTaxa, bb16S_bac_rarefy)
-#723 non-core asvs
+#820 non-core asvs
 
 tab_adonis<-data.frame(otu_table(non_core_asv))
 sd_adonis<-data.frame(sample_data(non_core_asv))
