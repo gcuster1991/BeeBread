@@ -952,6 +952,101 @@ plot_tree(unique_genera_to_region_tip_ps, color = "Site", shape = "Timepoint", l
 
 ```
 
+
+analysis of lactic acid bacteria and acetic acid bacteria at time pont 2 (following application)
+```{r}
+bb16S_bac_ML_B<-subset_samples(bb16S_bac_ML, Timepoint == "B")
+#ACETO
+#36 taxa
+acetobacter <- subset_taxa(bb16S_bac_ML_B, Family =="Acetobacteraceae")
+acetobacter_glomed<- tax_glom(acetobacter, taxrank = "Family")
+
+#anova for all taxa combined
+dat<-data.frame(otu_table(acetobacter_glomed))
+samp_d<-data.frame(sample_data(acetobacter_glomed))
+merged_dat<-cbind(dat, samp_d)
+#check to make sure md and otu table are in same order. All should be true. 
+table(merged_dat$X == rownames(merged_dat))
+mod<-aov(OTU_40 ~ Treatment, data = merged_dat)
+summary(mod)
+plot(residuals(mod))
+boxplot(merged_dat$OTU_40 ~ merged_dat$Treatment)
+
+#baruta for individual taxa
+baruta_aceto<-baruta_phyloseq(physeq = acetobacter, GroupingVar = "Treatment")
+aceto_df <- cbind(data.frame(otu_table(acetobacter)), data.frame(sample_data(acetobacter)))
+table(aceto_df$X == rownames(aceto_df))
+boxplot(aceto_df$OTU_82 ~ aceto_df$Treatment)
+View(tax_table(acetobacter))
+#otu 82 ID'ed by baruta. More abundant in ORG. Taxonomy for this taxa "Acetobacteraceae, Bombella"
+
+for(i in 1:length(names(data.frame(otu_table(acetobacter))))){
+  boxplot(unlist(aceto_df[i]) ~ aceto_df$Treatment)
+}
+
+for(i in 1:length(names(data.frame(otu_table(acetobacter))))){
+  mod<-aov(unlist(aceto_df[i]) ~ aceto_df$Treatment)
+  summary(mod)
+  print(summary(mod))
+  print(names(aceto_df[i]))
+}
+
+#no significant differences across treatment types
+
+#DESEQ
+bb16S_bac_Rare_B<-subset_samples(bb16S_bac_rarefy, Timepoint == "B")
+aceto_df_rare <- subset_taxa(bb16S_bac_Rare_B, Family =="Acetobacteraceae")
+aceto_df_rare <- filter_taxa(aceto_df_rare, function(x) sum(x) > 25, TRUE)
+```
+
+
+
+```{r}
+##LACTO
+
+#75 taxa
+lactobac <- subset_taxa(bb16S_bac_ML_B, Order =="Lactobacillales")
+lactobac_glomed <- tax_glom(lactobac, taxrank = "Order")
+
+dat<-data.frame(otu_table(lactobac_glomed))
+samp_d<-data.frame(sample_data(lactobac_glomed))
+merged_dat<-cbind(dat, samp_d)
+#check to make sure md and otu table are in same order. All should be true. 
+table(merged_dat$X == rownames(merged_dat))
+
+
+mod<-aov(OTU_5 ~ Treatment, data = merged_dat)
+summary(mod)
+shapiro.test(mod$residuals)
+plot(residuals(mod))
+boxplot(merged_dat$OTU_5 ~ merged_dat$Treatment)
+
+
+#baruta for individual taxa
+baruta_lacto<-baruta_phyloseq(physeq = lactobac, GroupingVar = "Treatment")
+lacto_df <- cbind(data.frame(otu_table(lactobac)), data.frame(sample_data(lactobac)))
+table(lacto_df$X == rownames(lacto_df))
+boxplot(lacto_df$OTU_530 ~ lacto_df$Treatment)
+View(tax_table(lactobac))
+
+
+
+for(i in 1:length(names(data.frame(otu_table(lactobac))))){
+  boxplot(unlist(lacto_df[i]) ~ lacto_df$Treatment)
+}
+
+for(i in 1:length(names(data.frame(otu_table(lactobac))))){
+  mod<-aov(unlist(lacto_df[i]) ~ lacto_df$Treatment)
+  summary(mod)
+  print(summary(mod))
+  print(names(lacto_df[i]))
+}
+
+
+```
+
+
+
 Relevant bee bread microbiome literature:
 
 DOI: <https://doi.org/10.1128/genomeA.00247-18>
