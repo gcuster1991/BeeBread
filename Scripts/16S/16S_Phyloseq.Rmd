@@ -64,6 +64,7 @@ Pre-processing. Rename OTU IDS to something more manageable. We save the ASCV se
 seq_df_w_OTUID<-data.frame(OTUID = 1:ntaxa(bb16S_orig), Sequence = taxa_names(bb16S_orig))
 taxa_names(bb16S_orig)<-paste("OTU_" , 1:ntaxa(bb16S_orig), sep = "")
 
+
 #remove chloroplast
 #978 chloroplast or mitochondrial taxa
 bb16S_orig_nc<-subset_taxa(bb16S_orig, Family!= "Mitochondria" | is.na(Family) & Order!="Chloroplast" | is.na(Order))
