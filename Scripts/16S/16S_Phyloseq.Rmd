@@ -85,7 +85,7 @@ ps_wo_control<-subset_samples(bb16S_bac, Treatment != "none")
 Examine rarefaction curves. Plateau in most samples under the 5k read mark.
 
 ```{r}
-rarecurve(otu_table(ps_wo_control), step=50, cex=0.5)
+rarecurve(otu_table(ps_wo_control), step=50, cex=0.5, main = "Rarefaction Curve", ylab="Richness", xlab="Read Depth")
 ```
 
 First, check sample depths for rarefaction. Minimum sample depth is right around 7k reads, so we will rarefy at 7k.
@@ -93,6 +93,8 @@ First, check sample depths for rarefaction. Minimum sample depth is right around
 ```{r}
 set.seed(11)
 sort(sample_sums(ps_wo_control))
+summary(sample_sums(ps_wo_control))
+sd(sample_sums(ps_wo_control))
 bb16S_bac_rarefy<-rarefy_even_depth(ps_wo_control, sample.size =1100, rngseed = 14, trimOTUs = T)
 #517 otus were removed during rarefaction. 
 
@@ -108,23 +110,36 @@ bb16S_bac_ML<- transform_sample_counts(ps_wo_control, function(x) x / sum(x))
 Plots of Alpha Diversity by region, treatment, timepoint, and the combinations.
 
 ```{r}
-plot_richness(bb16S_bac_rarefy, x = "Region", measures = c("Shannon", "Observed", "Chao1"), color = "Region") + geom_boxplot() + ggtitle("Region")
+#plot_richness(bb16S_bac_rarefy, x = "Region", measures = c("Shannon", "Observed", "Chao1"), color = "Region") + geom_boxplot() + ggtitle("Region")
 
-plot_richness(bb16S_bac_rarefy, x = "Treatment", measures = c("Shannon", "Observed", "Chao1"), color = "Treatment") + geom_boxplot() + ggtitle("Treatment")
+#plot_richness(bb16S_bac_rarefy, x = "Treatment", measures = c("Shannon", "Observed", "Chao1"), color = "Treatment") + geom_boxplot() + ggtitle("Treatment")
 
-plot_richness(bb16S_bac_rarefy, x = "Timepoint", measures = c("Shannon", "Observed", "Chao1"), color = "Timepoint") + geom_boxplot() + ggtitle("Timepoint")
+#plot_richness(bb16S_bac_rarefy, x = "Timepoint", measures = c("Shannon", "Observed", "Chao1"), color = "Timepoint") + geom_boxplot() + ggtitle("Timepoint")
 
-plot_richness(bb16S_bac_rarefy, x = "Site", measures = c("Shannon", "Observed", "Chao1"), color = "Site") + geom_boxplot() + ggtitle("Site")
+sf2a <- plot_richness(bb16S_bac_rarefy, x = "Site", measures = c("Shannon", "Observed", "Chao1"), color = "Site") + geom_boxplot() + ggtitle("Sampling Location") + theme_classic()  + xlab("Sampling Location")  + theme(axis.text=element_text(size=12, angle = 45, hjust = 0.75),
+        axis.title=element_text(size=14))
 
-plot_richness(bb16S_bac_rarefy, x = "Site", measures = c("Shannon", "Observed", "Chao1"), color = "Timepoint") + geom_boxplot() + ggtitle("Site by timepoint")
+sf2b <- plot_richness(bb16S_bac_rarefy, x = "Site", measures = c("Shannon", "Observed", "Chao1"), color = "Treatment") + geom_boxplot() + ggtitle("Sampling Location by Treatment") + theme_classic() + ylab("") + xlab("Sampling Location") +theme(axis.text=element_text(size=12, angle = 45, hjust = 0.75),
+        axis.title=element_text(size=14))
 
-plot_richness(bb16S_bac_rarefy, x = "Region_Treatment", measures = c("Shannon", "Observed", "Chao1"), color = "Region_Treatment") + geom_boxplot() + ggtitle("Region_Treatment")
+sf2c <-plot_richness(bb16S_bac_rarefy, x = "Site", measures = c("Shannon", "Observed", "Chao1"), color = "Timepoint") + geom_boxplot() + ggtitle("Sampling Location by Sammpling Time") + theme_classic() + xlab("Sampling Location")  +theme(axis.text=element_text(size=12, angle = 45, hjust = 0.75),
+        axis.title=element_text(size=14))
 
-plot_richness(bb16S_bac_rarefy, x = "Region_Site", measures = c("Shannon", "Observed", "Chao1"), color = "Region_Site") + geom_boxplot() + ggtitle("Region_site")
+sf2d <-plot_richness(bb16S_bac_rarefy, x = "Timepoint", measures = c("Shannon", "Observed", "Chao1"), color = "Treatment") + geom_boxplot() + ggtitle("Treatment by Sampling Time") + theme_classic() + ylab("") + xlab("Sampling Timepoint")  +theme(axis.text=element_text(size=12, angle = 45, hjust =0.75),
+        axis.title=element_text(size=14))
 
-plot_richness(bb16S_bac_rarefy, x = "Region_Timepoint", measures = c("Shannon", "Observed", "Chao1"), color = "Region_Timepoint") + geom_boxplot() + ggtitle("Region_Timepoint")
+library(gridExtra)
 
-plot_richness(bb16S_bac_rarefy, x = "Treatment_Timepoint", measures = c("Shannon", "Observed", "Chao1"), color = "Treatment_Timepoint") + geom_boxplot() + ggtitle("Treatment_Timepoint")
+sf2 <- grid.arrange(sf2a, sf2b, sf2c, sf2d)
+plot(sf2)
+
+#plot_richness(bb16S_bac_rarefy, x = "Region_Treatment", measures = c("Shannon", "Observed", "Chao1"), color = "Region_Treatment") + geom_boxplot() + ggtitle("Region_Treatment")
+
+#plot_richness(bb16S_bac_rarefy, x = "Region_Site", measures = c("Shannon", "Observed", "Chao1"), color = "Region_Site") + geom_boxplot() + ggtitle("Region_site")
+
+#plot_richness(bb16S_bac_rarefy, x = "Region_Timepoint", measures = c("Shannon", "Observed", "Chao1"), color = "Region_Timepoint") + geom_boxplot() + ggtitle("Region_Timepoint")
+
+#plot_richness(bb16S_bac_rarefy, x = "Treatment_Timepoint", measures = c("Shannon", "Observed", "Chao1"), color = "Treatment_Timepoint") + geom_boxplot() + ggtitle("Treatment_Timepoint")
 ```
 
 Based upon the site and region graphs, it appears that site contains more differences than region. There are no obvious differences among treatments. The site by timepoint graph shows what appears to be an interaction of before and after treatment and site. Some sites display lower diversity following treatment and others higher, with consistent trends across all sites though.
@@ -232,22 +247,48 @@ adonis2(dist ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adoni
 #this model explores the effect of Site, treatment and time point and restricts permutations sites. 
 adonis2(dist ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
 #pairwise with site strata arugment
+library(pairwiseAdonis)
 pairwise.adonis2(dist ~ Treatment + Timepoint, strata = "Site",  data= sd_adonis, nperm = 10000)
 pairwise.adonis2(dist ~ Treatment + Timepoint,  data= sd_adonis, nperm = 10000)
+
+
+
 
 #another way to specify the same model using adonis2. Both provide same results as would be expected. No need to run again, merely a sanity check.
 #perm<-how(nperm = 10000)
 #setBlocks(perm)<-with(sd_adonis, Timepoint)
 #adonis2(dist ~  Site * Treatment * Timepoint, data= sd_adonis, permutations = perm, by = "terms")
 
+
+
+
+#####UNIFRAC MEASURES FOR WHOLE DATASET
 #weighted unifrac distance
 dist.uf<-phyloseq::distance(bb16S_bac_ML, method =  "wunifrac")
 #full model with no strata argument, essentially the effect of each main effect without controlling for any potential groups. 
+anova(betadisper(dist.uf, group = sd_adonis$Site))
+boxplot(betadisper(dist.uf, group = sd_adonis$Site))
+
+
 adonis2(dist.uf ~  Site * Treatment * Timepoint, data= sd_adonis, permutations = 1000)
 #this model explores the effect of Site, treatment and time point and restricts permutations to time points. 
 adonis2(dist.uf ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Timepoint, permutations = 1000)
 #this model explores the effect of Site, treatment and time point and restricts permutations sites. 
 adonis2(dist.uf ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
+
+
+
+
+pairwise.adonis2(dist.uf ~ Treatment + Timepoint, strata = "Site",  data= sd_adonis, nperm = 1000)
+
+
+dist.ufu<-phyloseq::distance(bb16S_bac_ML, method =  "unifrac")
+#full model with no strata argument, essentially the effect of each main effect without controlling for any potential groups. 
+adonis2(dist.ufu ~  Site * Treatment * Timepoint, data= sd_adonis, permutations = 1000)
+#this model explores the effect of Site, treatment and time point and restricts permutations to time points. 
+adonis2(dist.ufu ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Timepoint, permutations = 1000)
+#this model explores the effect of Site, treatment and time point and restricts permutations sites. 
+adonis2(dist.ufu ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
 
 
 
@@ -321,9 +362,17 @@ dist.uf<-phyloseq::distance(bb16S_bac_ML_B, method =  "wunifrac")
 adonis2(dist.uf ~  Site * Treatment,  data= sd_adonis, permutations = 1000)
 #this model explores the effect of Site, treatment and time point and restricts permutations sites. 
 adonis2(dist.uf ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
+
+
+#unweighted unifrac distance
+dist.ufu<-phyloseq::distance(bb16S_bac_ML_B, method =  "wunifrac")
+#full model with no strata argument, essentially the effect of each main effect without controlling for any potential groups. 
+adonis2(dist.ufu ~  Site * Treatment,  data= sd_adonis, permutations = 1000)
+#this model explores the effect of Site, treatment and time point and restricts permutations sites. 
+adonis2(dist.ufu ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
 ```
 
-Time point 2 (post-treatment): Site was again a significant predictor (R2 = 0.53), and treatment was significant (R2 = 0.05), with or without the effect of site being controlled for using strata = site. Pairwise comparisons show the CF and CON to be different (R2 = 0.056) and the CF and ORG to be different (R2 = 0.053). This was not the case for weighted unifrac dissimilarity. Treatment was not a significant predictor of community dissimilarity regardless of whether or not site differences were controlled for using weighted unifrac. However, there was a significant interaction of Site \* Treatment (R2 = 0.39) that was not present in the Bray-Curtis Adonis.
+Time point 2 (post-treatment): Site was again a significant predictor (R2 = 0.53), and treatment was significant (R2 = 0.05), with or without the effect of site being controlled for using strata = site. Pairwise comparisons show the CF and CON to be different (R2 = 0.056) and the CF and ORG to be different (R2 = 0.053). This was not the case for weighted unifrac dissimilarity. Treatment was not a significant predictor of community dissimilarity regardless of whether or not site differences were controlled for using weighted unifrac. However, there was a significant interaction of Site * Treatment (R2 = 0.39) that was not present in the Bray-Curtis Adonis.
 
 Take away: Site remains the most useful predictor of community dissimilarity. Treatment effects are observed and there are significant pairwise differences. There is a phylogenetic response to site\*treatment (W-unifrac).
 
@@ -358,9 +407,17 @@ ord_site_plot <- ord_site$plot
 ord_site_plot <- ord_site_plot + theme_classic() + guides(color=guide_legend(title="Site"))
 
 
-ord_cap<-ordinate(physeq = bb16S_bac_ML, method = "CAP", distance = "wunifrac", formula = ~  Site + Timepoint )
-plot_ordination(physeq = bb16S_bac_ML, ordination = ord_cap, type = "Samples", color = "Site", shape = "Timepoint" ) + theme_classic()  + ggtitle("Weighted Unifrac CAP")
+ord_cap_w<-ordinate(physeq = bb16S_bac_ML, method = "CAP", distance = "wunifrac", formula = ~  Site + Timepoint )
+w_cap_plot<-plot_ordination(physeq = bb16S_bac_ML, ordination = ord_cap_w, type = "Samples", color = "Site", shape = "Timepoint" ) + theme_classic()  + ggtitle("Weighted Unifrac CAP")  + theme(plot.title = element_text(hjust = 0.5))
 #strongest grouping by Site. Time point also has a smaller effect and the groupings are not nearly as clear. There are several outlier samples that ordinate far to the right on the CAP1 axis. 
+
+
+ord_cap_uw<-ordinate(physeq = bb16S_bac_ML, method = "CAP", distance = "unifrac", formula = ~  Site + Timepoint )
+uw_cap_plot<-plot_ordination(physeq = bb16S_bac_ML, ordination = ord_cap_uw, type = "Samples", color = "Site", shape = "Timepoint" ) + theme_classic()  + ggtitle("Unweighted Unifrac CAP")  + theme(plot.title = element_text(hjust = 0.5))
+#strongest grouping by Site. Time point also has a smaller effect and the groupings are not nearly as clear. There are several outlier samples that ordinate far to the right on the CAP1 axis. 
+
+w_cap_plot
+uw_cap_plot
 
 
 gg_ordiplot(ord_cap, groups, scaling = 1, choices = c(1, 2), kind = c("sd", "se", "ehull"), conf = NULL, show.groups = "all", ellipse = TRUE, label = FALSE, hull = FALSE, spiders = FALSE, plot = TRUE)
@@ -384,8 +441,13 @@ ggsave("../../Figures/Figure3_NMDS_Site.pdf")
 #weighted Unifrac
 ord_nmds<-ordinate(physeq = bb16S_bac_ML, method = "NMDS", distance = "wunifrac")
 ord_nmds$stress
-plot_ordination(physeq = bb16S_bac_ML, ordination = ord_nmds, type = "Samples", color = "Site", shape = "Timepoint" ) + theme_classic() + ggtitle("Weighted Unifrac NMDS")
+plot_ordination(physeq = bb16S_bac_ML, ordination = ord_nmds, type = "Samples", color = "Site", shape = "Treatment" ) + theme_classic() + ggtitle("Weighted Unifrac NMDS")
 #strongest grouping by Site. Time point also has a smaller effect, but these groupings are more clear than in the CAP ordination. There are several outlier samples that ordinate far to the right on the NMDS1 axis. 
+
+#unweighted Unifrac
+ord_nmds<-ordinate(physeq = bb16S_bac_ML, method = "NMDS", distance = "unifrac")
+ord_nmds$stress
+plot_ordination(physeq = bb16S_bac_ML, ordination = ord_nmds, type = "Samples", color = "Site", shape = "Treatment" ) + theme_classic() + ggtitle("Unweighted Unifrac NMDS")
 ```
 
 #Indicator taxa using Baruta Algorith Specify function for Baruta that accepts a phyloseq object.
