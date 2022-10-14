@@ -2106,156 +2106,12 @@ distances.</p>
 <p>Split by time point as these are before and after treatment.</p>
 <!-- rnb-text-end -->
 <!-- rnb-chunk-begin -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuI3NwbGl0IHRoZW4gZXh0cmFjdCBpbmZvIGZyb20gZWFjaFxuI3ByZS10cmVhdG1lbnQgc2FtcGxlc1xuYmIxNlNfYmFjX01MX0E8LXN1YnNldF9zYW1wbGVzKGJiMTZTX2JhY19NTCwgVGltZXBvaW50ID09IFwiQVwiKVxuXG4jZXh0cmFjdCBkYXRhIGZyb20gcGh5bG9zZXEgb2JqZWN0IGZvciBwcmUtdHJlYXRtZW50XG5zZF9hZG9uaXM8LWRhdGEuZnJhbWUoc2FtcGxlX2RhdGEoYmIxNlNfYmFjX01MX0EpKVxuc2RfYWRvbmlzJFRyZWF0bWVudCA8LWFzLmZhY3RvcihzZF9hZG9uaXMkVHJlYXRtZW50KVxuc2RfYWRvbmlzJFNpdGUgPC1hcy5mYWN0b3Ioc2RfYWRvbmlzJFNpdGUpXG5kaXN0PC1waHlsb3NlcTo6ZGlzdGFuY2UoYmIxNlNfYmFjX01MX0EsIG1ldGhvZCA9ICBcImJyYXlcIilcblxuI2Z1bGwgbW9kZWxzIHdpdGggbm8gc3RyYXRhIFxuYWRvbmlzMihkaXN0IH4gIFNpdGUgKiBUcmVhdG1lbnQsIGRhdGE9IHNkX2Fkb25pcywgcGVybXV0YXRpb25zID0gMTAwMClcbmBgYCJ9 -->
-<pre class="r"><code>#split then extract info from each
-#pre-treatment samples
-bb16S_bac_ML_A&lt;-subset_samples(bb16S_bac_ML, Timepoint == &quot;A&quot;)
-
-#extract data from phyloseq object for pre-treatment
-sd_adonis&lt;-data.frame(sample_data(bb16S_bac_ML_A))
-sd_adonis$Treatment &lt;-as.factor(sd_adonis$Treatment)
-sd_adonis$Site &lt;-as.factor(sd_adonis$Site)
-dist&lt;-phyloseq::distance(bb16S_bac_ML_A, method =  &quot;bray&quot;)
-
-#full models with no strata 
-adonis2(dist ~  Site * Treatment, data= sd_adonis, permutations = 1000)</code></pre>
+<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuI2Z1bGwgbW9kZWwgd2l0aCBubyBzdHJhdGEgYXJndW1lbnQsIGVzc2VudGlhbGx5IHRoZSBlZmZlY3Qgb2YgZWFjaCBtYWluIGVmZmVjdCB3aXRob3V0IGNvbnRyb2xsaW5nIGZvciBhbnkgcG90ZW50aWFsIGdyb3Vwcy4gXG5hZG9uaXMyKGRpc3QudWYgfiAgU2l0ZSAqIFRyZWF0bWVudCwgc3RyYXRhID0gc2RfYWRvbmlzJFNpdGUsIGRhdGE9IHNkX2Fkb25pcywgcGVybXV0YXRpb25zID0gMTAwMClcblxuYGBgIn0= -->
+<pre class="r"><code>#full model with no strata argument, essentially the effect of each main effect without controlling for any potential groups. 
+adonis2(dist.uf ~  Site * Treatment, strata = sd_adonis$Site, data= sd_adonis, permutations = 1000)
+</code></pre>
 <!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiUGVybXV0YXRpb24gdGVzdCBmb3IgYWRvbmlzIHVuZGVyIHJlZHVjZWQgbW9kZWxcblRlcm1zIGFkZGVkIHNlcXVlbnRpYWxseSAoZmlyc3QgdG8gbGFzdClcblBlcm11dGF0aW9uOiBmcmVlXG5OdW1iZXIgb2YgcGVybXV0YXRpb25zOiAxMDAwXG5cbmFkb25pczIoZm9ybXVsYSA9IGRpc3QgfiBTaXRlICogVHJlYXRtZW50LCBkYXRhID0gc2RfYWRvbmlzLCBwZXJtdXRhdGlvbnMgPSAxMDAwKVxuICAgICAgICAgICAgICAgRGYgU3VtT2ZTcXMgICAgICBSMiAgICAgIEYgICBQcig+RikgICAgXG5TaXRlICAgICAgICAgICAgNSAgIDQuNDA4MSAwLjUyMjE1IDcuMjAzOSAwLjAwMDk5OSAqKipcblRyZWF0bWVudCAgICAgICAyICAgMC4yODE3IDAuMDMzMzcgMS4xNTA5IDAuMzA5NjkwICAgIFxuU2l0ZTpUcmVhdG1lbnQgMTAgICAxLjU0OTUgMC4xODM1NCAxLjI2NjEgMC4xMDk4OTAgICAgXG5SZXNpZHVhbCAgICAgICAxOCAgIDIuMjAyOSAwLjI2MDk0ICAgICAgICAgICAgICAgICAgICBcblRvdGFsICAgICAgICAgIDM1ICAgOC40NDIyIDEuMDAwMDAgICAgICAgICAgICAgICAgICAgIFxuLS0tXG5TaWduaWYuIGNvZGVzOiAgMCDigJgqKirigJkgMC4wMDEg4oCYKirigJkgMC4wMSDigJgq4oCZIDAuMDUg4oCYLuKAmSAwLjEg4oCYIOKAmSAxXG4ifQ== -->
-<pre><code>Permutation test for adonis under reduced model
-Terms added sequentially (first to last)
-Permutation: free
-Number of permutations: 1000
-
-adonis2(formula = dist ~ Site * Treatment, data = sd_adonis, permutations = 1000)
-               Df SumOfSqs      R2      F   Pr(&gt;F)    
-Site            5   4.4081 0.52215 7.2039 0.000999 ***
-Treatment       2   0.2817 0.03337 1.1509 0.309690    
-Site:Treatment 10   1.5495 0.18354 1.2661 0.109890    
-Residual       18   2.2029 0.26094                    
-Total          35   8.4422 1.00000                    
----
-Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1</code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuYWRvbmlzMihkaXN0IH4gICBUcmVhdG1lbnQgKiBTaXRlLCBkYXRhPSBzZF9hZG9uaXMsIHBlcm11dGF0aW9ucyA9IDEwMDApXG5gYGAifQ== -->
-<pre class="r"><code>adonis2(dist ~   Treatment * Site, data= sd_adonis, permutations = 1000)</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiUGVybXV0YXRpb24gdGVzdCBmb3IgYWRvbmlzIHVuZGVyIHJlZHVjZWQgbW9kZWxcblRlcm1zIGFkZGVkIHNlcXVlbnRpYWxseSAoZmlyc3QgdG8gbGFzdClcblBlcm11dGF0aW9uOiBmcmVlXG5OdW1iZXIgb2YgcGVybXV0YXRpb25zOiAxMDAwXG5cbmFkb25pczIoZm9ybXVsYSA9IGRpc3QgfiBUcmVhdG1lbnQgKiBTaXRlLCBkYXRhID0gc2RfYWRvbmlzLCBwZXJtdXRhdGlvbnMgPSAxMDAwKVxuICAgICAgICAgICAgICAgRGYgU3VtT2ZTcXMgICAgICBSMiAgICAgIEYgICBQcig+RikgICAgXG5UcmVhdG1lbnQgICAgICAgMiAgIDAuMjgxNyAwLjAzMzM3IDEuMTUwOSAwLjMyMTY3OCAgICBcblNpdGUgICAgICAgICAgICA1ICAgNC40MDgxIDAuNTIyMTUgNy4yMDM5IDAuMDAwOTk5ICoqKlxuVHJlYXRtZW50OlNpdGUgMTAgICAxLjU0OTUgMC4xODM1NCAxLjI2NjEgMC4xMjE4NzggICAgXG5SZXNpZHVhbCAgICAgICAxOCAgIDIuMjAyOSAwLjI2MDk0ICAgICAgICAgICAgICAgICAgICBcblRvdGFsICAgICAgICAgIDM1ICAgOC40NDIyIDEuMDAwMDAgICAgICAgICAgICAgICAgICAgIFxuLS0tXG5TaWduaWYuIGNvZGVzOiAgMCDigJgqKirigJkgMC4wMDEg4oCYKirigJkgMC4wMSDigJgq4oCZIDAuMDUg4oCYLuKAmSAwLjEg4oCYIOKAmSAxXG4ifQ== -->
-<pre><code>Permutation test for adonis under reduced model
-Terms added sequentially (first to last)
-Permutation: free
-Number of permutations: 1000
-
-adonis2(formula = dist ~ Treatment * Site, data = sd_adonis, permutations = 1000)
-               Df SumOfSqs      R2      F   Pr(&gt;F)    
-Treatment       2   0.2817 0.03337 1.1509 0.321678    
-Site            5   4.4081 0.52215 7.2039 0.000999 ***
-Treatment:Site 10   1.5495 0.18354 1.2661 0.121878    
-Residual       18   2.2029 0.26094                    
-Total          35   8.4422 1.00000                    
----
-Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1</code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuI21vZGVscyB3aXRoIHN0cmF0YSB0byBjb250cm9sIGZvciBzaXRlIGRpZmZlcmVuY2VzXG5hZG9uaXMyKGRpc3QgfiAgU2l0ZSAqIFRyZWF0bWVudCwgZGF0YT0gc2RfYWRvbmlzLCBzdHJhdGEgPSBzZF9hZG9uaXMkU2l0ZSwgcGVybXV0YXRpb25zID0gMTAwMClcbmBgYCJ9 -->
-<pre class="r"><code>#models with strata to control for site differences
-adonis2(dist ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiUGVybXV0YXRpb24gdGVzdCBmb3IgYWRvbmlzIHVuZGVyIHJlZHVjZWQgbW9kZWxcblRlcm1zIGFkZGVkIHNlcXVlbnRpYWxseSAoZmlyc3QgdG8gbGFzdClcbkJsb2NrczogIHN0cmF0YSBcblBlcm11dGF0aW9uOiBmcmVlXG5OdW1iZXIgb2YgcGVybXV0YXRpb25zOiAxMDAwXG5cbmFkb25pczIoZm9ybXVsYSA9IGRpc3QgfiBTaXRlICogVHJlYXRtZW50LCBkYXRhID0gc2RfYWRvbmlzLCBwZXJtdXRhdGlvbnMgPSAxMDAwLCBzdHJhdGEgPSBzZF9hZG9uaXMkU2l0ZSlcbiAgICAgICAgICAgICAgIERmIFN1bU9mU3FzICAgICAgUjIgICAgICBGIFByKD5GKVxuU2l0ZSAgICAgICAgICAgIDUgICA0LjQwODEgMC41MjIxNSA3LjIwMzkgMC4xNTk4XG5UcmVhdG1lbnQgICAgICAgMiAgIDAuMjgxNyAwLjAzMzM3IDEuMTUwOSAwLjI2MTdcblNpdGU6VHJlYXRtZW50IDEwICAgMS41NDk1IDAuMTgzNTQgMS4yNjYxIDAuMTM5OVxuUmVzaWR1YWwgICAgICAgMTggICAyLjIwMjkgMC4yNjA5NCAgICAgICAgICAgICAgXG5Ub3RhbCAgICAgICAgICAzNSAgIDguNDQyMiAxLjAwMDAwICAgICAgICAgICAgICBcbiJ9 -->
-<pre><code>Permutation test for adonis under reduced model
-Terms added sequentially (first to last)
-Blocks:  strata 
-Permutation: free
-Number of permutations: 1000
-
-adonis2(formula = dist ~ Site * Treatment, data = sd_adonis, permutations = 1000, strata = sd_adonis$Site)
-               Df SumOfSqs      R2      F Pr(&gt;F)
-Site            5   4.4081 0.52215 7.2039 0.1598
-Treatment       2   0.2817 0.03337 1.1509 0.2617
-Site:Treatment 10   1.5495 0.18354 1.2661 0.1399
-Residual       18   2.2029 0.26094              
-Total          35   8.4422 1.00000              </code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuYWRvbmlzMihkaXN0IH4gIFRyZWF0bWVudCAqIFNpdGUsIGRhdGE9IHNkX2Fkb25pcywgc3RyYXRhID0gc2RfYWRvbmlzJFNpdGUsIHBlcm11dGF0aW9ucyA9IDEwMDApXG5gYGAifQ== -->
-<pre class="r"><code>adonis2(dist ~  Treatment * Site, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiUGVybXV0YXRpb24gdGVzdCBmb3IgYWRvbmlzIHVuZGVyIHJlZHVjZWQgbW9kZWxcblRlcm1zIGFkZGVkIHNlcXVlbnRpYWxseSAoZmlyc3QgdG8gbGFzdClcbkJsb2NrczogIHN0cmF0YSBcblBlcm11dGF0aW9uOiBmcmVlXG5OdW1iZXIgb2YgcGVybXV0YXRpb25zOiAxMDAwXG5cbmFkb25pczIoZm9ybXVsYSA9IGRpc3QgfiBUcmVhdG1lbnQgKiBTaXRlLCBkYXRhID0gc2RfYWRvbmlzLCBwZXJtdXRhdGlvbnMgPSAxMDAwLCBzdHJhdGEgPSBzZF9hZG9uaXMkU2l0ZSlcbiAgICAgICAgICAgICAgIERmIFN1bU9mU3FzICAgICAgUjIgICAgICBGIFByKD5GKVxuVHJlYXRtZW50ICAgICAgIDIgICAwLjI4MTcgMC4wMzMzNyAxLjE1MDkgMC4yNzA3XG5TaXRlICAgICAgICAgICAgNSAgIDQuNDA4MSAwLjUyMjE1IDcuMjAzOSAwLjEzOTlcblRyZWF0bWVudDpTaXRlIDEwICAgMS41NDk1IDAuMTgzNTQgMS4yNjYxIDAuMTMwOVxuUmVzaWR1YWwgICAgICAgMTggICAyLjIwMjkgMC4yNjA5NCAgICAgICAgICAgICAgXG5Ub3RhbCAgICAgICAgICAzNSAgIDguNDQyMiAxLjAwMDAwICAgICAgICAgICAgICBcbiJ9 -->
-<pre><code>Permutation test for adonis under reduced model
-Terms added sequentially (first to last)
-Blocks:  strata 
-Permutation: free
-Number of permutations: 1000
-
-adonis2(formula = dist ~ Treatment * Site, data = sd_adonis, permutations = 1000, strata = sd_adonis$Site)
-               Df SumOfSqs      R2      F Pr(&gt;F)
-Treatment       2   0.2817 0.03337 1.1509 0.2707
-Site            5   4.4081 0.52215 7.2039 0.1399
-Treatment:Site 10   1.5495 0.18354 1.2661 0.1309
-Residual       18   2.2029 0.26094              
-Total          35   8.4422 1.00000              </code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuI2FuZCBwYWlyd2lzZVxucGFpcndpc2UuYWRvbmlzMihkaXN0IH4gVHJlYXRtZW50LCBzdHJhdGEgPSBcIlNpdGVcIiwgIGRhdGE9IHNkX2Fkb25pcywgbnBlcm0gPSAxMDAwKVxuYGBgIn0= -->
-<pre class="r"><code>#and pairwise
-pairwise.adonis2(dist ~ Treatment, strata = &quot;Site&quot;,  data= sd_adonis, nperm = 1000)</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiJHBhcmVudF9jYWxsXG5bMV0gXCJkaXN0IH4gVHJlYXRtZW50ICwgc3RyYXRhID0gU2l0ZSAsIHBlcm11dGF0aW9ucyAxMDAwXCJcblxuJENGX3ZzX0NPTlxuICAgICAgICAgIERmIFN1bU9mU3FzICAgICAgUjIgICAgICBGIFByKD5GKVxuVHJlYXRtZW50ICAxICAgMC4xMjUxIDAuMDIzMTIgMC41MjA4IDAuMzMwN1xuUmVzaWR1YWwgIDIyICAgNS4yODM4IDAuOTc2ODggICAgICAgICAgICAgIFxuVG90YWwgICAgIDIzICAgNS40MDg5IDEuMDAwMDAgICAgICAgICAgICAgIFxuXG4kQ0ZfdnNfT1JHXG4gICAgICAgICAgRGYgU3VtT2ZTcXMgICAgICBSMiAgICAgIEYgUHIoPkYpXG5UcmVhdG1lbnQgIDEgICAwLjE0NzggMC4wMjY0NiAwLjU5NzkgMC40MzE2XG5SZXNpZHVhbCAgMjIgICA1LjQzOTcgMC45NzM1NCAgICAgICAgICAgICAgXG5Ub3RhbCAgICAgMjMgICA1LjU4NzYgMS4wMDAwMCAgICAgICAgICAgICAgXG5cbiRDT05fdnNfT1JHXG4gICAgICAgICAgRGYgU3VtT2ZTcXMgICAgICBSMiAgICAgIEYgUHIoPkYpXG5UcmVhdG1lbnQgIDEgICAwLjE0OTYgMC4wMjYwNCAwLjU4ODIgMC4yNDk4XG5SZXNpZHVhbCAgMjIgICA1LjU5NzQgMC45NzM5NiAgICAgICAgICAgICAgXG5Ub3RhbCAgICAgMjMgICA1Ljc0NzAgMS4wMDAwMCAgICAgICAgICAgICAgXG5cbmF0dHIoLFwiY2xhc3NcIilcblsxXSBcInB3YWRzdHJhdGFcIiBcImxpc3RcIiAgICAgIFxuIn0= -->
-<pre><code>$parent_call
-[1] &quot;dist ~ Treatment , strata = Site , permutations 1000&quot;
-
-$CF_vs_CON
-          Df SumOfSqs      R2      F Pr(&gt;F)
-Treatment  1   0.1251 0.02312 0.5208 0.3307
-Residual  22   5.2838 0.97688              
-Total     23   5.4089 1.00000              
-
-$CF_vs_ORG
-          Df SumOfSqs      R2      F Pr(&gt;F)
-Treatment  1   0.1478 0.02646 0.5979 0.4316
-Residual  22   5.4397 0.97354              
-Total     23   5.5876 1.00000              
-
-$CON_vs_ORG
-          Df SumOfSqs      R2      F Pr(&gt;F)
-Treatment  1   0.1496 0.02604 0.5882 0.2498
-Residual  22   5.5974 0.97396              
-Total     23   5.7470 1.00000              
-
-attr(,&quot;class&quot;)
-[1] &quot;pwadstrata&quot; &quot;list&quot;      </code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxucGFpcndpc2UuYWRvbmlzMihkaXN0IH4gVHJlYXRtZW50LCBkYXRhPSBzZF9hZG9uaXMsIG5wZXJtID0gMTAwMClcbmBgYCJ9 -->
-<pre class="r"><code>pairwise.adonis2(dist ~ Treatment, data= sd_adonis, nperm = 1000)</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiJHBhcmVudF9jYWxsXG5bMV0gXCJkaXN0IH4gVHJlYXRtZW50ICwgc3RyYXRhID0gTnVsbCAsIHBlcm11dGF0aW9ucyAxMDAwXCJcblxuJENGX3ZzX0NPTlxuICAgICAgICAgIERmIFN1bU9mU3FzICAgICAgUjIgICAgICBGIFByKD5GKVxuVHJlYXRtZW50ICAxICAgMC4xMjUxIDAuMDIzMTIgMC41MjA4ICAwLjg0MlxuUmVzaWR1YWwgIDIyICAgNS4yODM4IDAuOTc2ODggICAgICAgICAgICAgIFxuVG90YWwgICAgIDIzICAgNS40MDg5IDEuMDAwMDAgICAgICAgICAgICAgIFxuXG4kQ0ZfdnNfT1JHXG4gICAgICAgICAgRGYgU3VtT2ZTcXMgICAgICBSMiAgICAgIEYgUHIoPkYpXG5UcmVhdG1lbnQgIDEgICAwLjE0NzggMC4wMjY0NiAwLjU5NzkgIDAuODI1XG5SZXNpZHVhbCAgMjIgICA1LjQzOTcgMC45NzM1NCAgICAgICAgICAgICAgXG5Ub3RhbCAgICAgMjMgICA1LjU4NzYgMS4wMDAwMCAgICAgICAgICAgICAgXG5cbiRDT05fdnNfT1JHXG4gICAgICAgICAgRGYgU3VtT2ZTcXMgICAgICBSMiAgICAgIEYgUHIoPkYpXG5UcmVhdG1lbnQgIDEgICAwLjE0OTYgMC4wMjYwNCAwLjU4ODIgIDAuODA2XG5SZXNpZHVhbCAgMjIgICA1LjU5NzQgMC45NzM5NiAgICAgICAgICAgICAgXG5Ub3RhbCAgICAgMjMgICA1Ljc0NzAgMS4wMDAwMCAgICAgICAgICAgICAgXG5cbmF0dHIoLFwiY2xhc3NcIilcblsxXSBcInB3YWRzdHJhdGFcIiBcImxpc3RcIiAgICAgIFxuIn0= -->
-<pre><code>$parent_call
-[1] &quot;dist ~ Treatment , strata = Null , permutations 1000&quot;
-
-$CF_vs_CON
-          Df SumOfSqs      R2      F Pr(&gt;F)
-Treatment  1   0.1251 0.02312 0.5208  0.842
-Residual  22   5.2838 0.97688              
-Total     23   5.4089 1.00000              
-
-$CF_vs_ORG
-          Df SumOfSqs      R2      F Pr(&gt;F)
-Treatment  1   0.1478 0.02646 0.5979  0.825
-Residual  22   5.4397 0.97354              
-Total     23   5.5876 1.00000              
-
-$CON_vs_ORG
-          Df SumOfSqs      R2      F Pr(&gt;F)
-Treatment  1   0.1496 0.02604 0.5882  0.806
-Residual  22   5.5974 0.97396              
-Total     23   5.7470 1.00000              
-
-attr(,&quot;class&quot;)
-[1] &quot;pwadstrata&quot; &quot;list&quot;      </code></pre>
-<!-- rnb-output-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuI3dlaWdodGVkIHVuaWZyYWMgZGlzdGFuY2VcbmRpc3QudWY8LXBoeWxvc2VxOjpkaXN0YW5jZShiYjE2U19iYWNfTUxfQSwgbWV0aG9kID0gIFwid3VuaWZyYWNcIilcbiNmdWxsIG1vZGVsIHdpdGggbm8gc3RyYXRhIGFyZ3VtZW50LCBlc3NlbnRpYWxseSB0aGUgZWZmZWN0IG9mIGVhY2ggbWFpbiBlZmZlY3Qgd2l0aG91dCBjb250cm9sbGluZyBmb3IgYW55IHBvdGVudGlhbCBncm91cHMuIFxuYWRvbmlzMihkaXN0LnVmIH4gIFNpdGUgKiBUcmVhdG1lbnQsIHN0cmF0YSA9IHNkX2Fkb25pcyRTaXRlLCBkYXRhPSBzZF9hZG9uaXMsIHBlcm11dGF0aW9ucyA9IDEwMDApXG5gYGAifQ== -->
-<pre class="r"><code>#weighted unifrac distance
-dist.uf&lt;-phyloseq::distance(bb16S_bac_ML_A, method =  &quot;wunifrac&quot;)
-#full model with no strata argument, essentially the effect of each main effect without controlling for any potential groups. 
-adonis2(dist.uf ~  Site * Treatment, strata = sd_adonis$Site, data= sd_adonis, permutations = 1000)</code></pre>
-<!-- rnb-source-end -->
-<!-- rnb-output-begin eyJkYXRhIjoiUGVybXV0YXRpb24gdGVzdCBmb3IgYWRvbmlzIHVuZGVyIHJlZHVjZWQgbW9kZWxcblRlcm1zIGFkZGVkIHNlcXVlbnRpYWxseSAoZmlyc3QgdG8gbGFzdClcbkJsb2NrczogIHN0cmF0YSBcblBlcm11dGF0aW9uOiBmcmVlXG5OdW1iZXIgb2YgcGVybXV0YXRpb25zOiAxMDAwXG5cbmFkb25pczIoZm9ybXVsYSA9IGRpc3QudWYgfiBTaXRlICogVHJlYXRtZW50LCBkYXRhID0gc2RfYWRvbmlzLCBwZXJtdXRhdGlvbnMgPSAxMDAwLCBzdHJhdGEgPSBzZF9hZG9uaXMkU2l0ZSlcbiAgICAgICAgICAgICAgIERmIFN1bU9mU3FzICAgICAgUjIgICAgICBGIFByKD5GKVxuU2l0ZSAgICAgICAgICAgIDUgIDAuMzU0OTggMC40NTQ5NCA1LjUxMTkgMC4yNDU4XG5UcmVhdG1lbnQgICAgICAgMiAgMC4wMTkyNyAwLjAyNDY5IDAuNzQ3OCAwLjU0ODVcblNpdGU6VHJlYXRtZW50IDEwICAwLjE3NDE4IDAuMjIzMjMgMS4zNTIzIDAuMjA0OFxuUmVzaWR1YWwgICAgICAgMTggIDAuMjMxODUgMC4yOTcxNCAgICAgICAgICAgICAgXG5Ub3RhbCAgICAgICAgICAzNSAgMC43ODAyOCAxLjAwMDAwICAgICAgICAgICAgICBcbiJ9 -->
+<!-- rnb-output-begin eyJkYXRhIjoiUGVybXV0YXRpb24gdGVzdCBmb3IgYWRvbmlzIHVuZGVyIHJlZHVjZWQgbW9kZWxcblRlcm1zIGFkZGVkIHNlcXVlbnRpYWxseSAoZmlyc3QgdG8gbGFzdClcbkJsb2NrczogIHN0cmF0YSBcblBlcm11dGF0aW9uOiBmcmVlXG5OdW1iZXIgb2YgcGVybXV0YXRpb25zOiAxMDAwXG5cbmFkb25pczIoZm9ybXVsYSA9IGRpc3QudWYgfiBTaXRlICogVHJlYXRtZW50LCBkYXRhID0gc2RfYWRvbmlzLCBwZXJtdXRhdGlvbnMgPSAxMDAwLCBzdHJhdGEgPSBzZF9hZG9uaXMkU2l0ZSlcbiAgICAgICAgICAgICAgIERmIFN1bU9mU3FzICAgICAgUjIgICAgICBGIFByKD5GKVxuU2l0ZSAgICAgICAgICAgIDUgIDAuMzU0OTggMC40NTQ5NCA1LjUxMTkgMC4yMzg4XG5UcmVhdG1lbnQgICAgICAgMiAgMC4wMTkyNyAwLjAyNDY5IDAuNzQ3OCAwLjU1MDRcblNpdGU6VHJlYXRtZW50IDEwICAwLjE3NDE4IDAuMjIzMjMgMS4zNTIzIDAuMTk1OFxuUmVzaWR1YWwgICAgICAgMTggIDAuMjMxODUgMC4yOTcxNCAgICAgICAgICAgICAgXG5Ub3RhbCAgICAgICAgICAzNSAgMC43ODAyOCAxLjAwMDAwICAgICAgICAgICAgICBcbiJ9 -->
 <pre><code>Permutation test for adonis under reduced model
 Terms added sequentially (first to last)
 Blocks:  strata 
@@ -2264,15 +2120,12 @@ Number of permutations: 1000
 
 adonis2(formula = dist.uf ~ Site * Treatment, data = sd_adonis, permutations = 1000, strata = sd_adonis$Site)
                Df SumOfSqs      R2      F Pr(&gt;F)
-Site            5  0.35498 0.45494 5.5119 0.2458
-Treatment       2  0.01927 0.02469 0.7478 0.5485
-Site:Treatment 10  0.17418 0.22323 1.3523 0.2048
+Site            5  0.35498 0.45494 5.5119 0.2388
+Treatment       2  0.01927 0.02469 0.7478 0.5504
+Site:Treatment 10  0.17418 0.22323 1.3523 0.1958
 Residual       18  0.23185 0.29714              
 Total          35  0.78028 1.00000              </code></pre>
 <!-- rnb-output-end -->
-<!-- rnb-source-begin eyJkYXRhIjoiYGBgclxuI3RoaXMgbW9kZWwgZXhwbG9yZXMgdGhlIGVmZmVjdCBvZiBTaXRlLCB0cmVhdG1lbnQgYW5kIHRpbWUgcG9pbnQgYW5kIHJlc3RyaWN0cyBwZXJtdXRhdGlvbnMgc2l0ZXMuIFxuYGBgIn0= -->
-<pre class="r"><code>#this model explores the effect of Site, treatment and time point and restricts permutations sites. </code></pre>
-<!-- rnb-source-end -->
 <!-- rnb-chunk-end -->
 <!-- rnb-text-begin -->
 <p>Time point 1 (pre-treatment): Significant effect of Site (r2 of
