@@ -20,6 +20,8 @@ require(tidyverse)
 require(circlize)
   require(phylosmith)
 require(phangorn)
+  require(gridExtra)
+require(pairwiseAdonis)
 ```
 
 Load necessary files from Dada2 processing script.
@@ -56,7 +58,8 @@ phy_tree(bb16S_orig)<-root(phy_tree(bb16S_orig), sample(taxa_names(bb16S_orig), 
 is.rooted(phy_tree(bb16S_orig))
 ```
 
-Pre-processing. Rename OTU IDS to something more manageable. We save the ASCV sequences in case we need them later (e.g., BLASTN searches). Create Bacterial and Archaeal phyloseq objects, but first we remove Chloroplasts.
+#Pre-processing. 
+Rename OTU IDS to something more manageable. We save the ASCV sequences in case we need them later (e.g., BLASTN searches). Create Bacterial and Archaeal phyloseq objects, but first we remove Chloroplasts.
 
 ```{r}
 #Extract original IDs for future reference. 
@@ -81,8 +84,145 @@ Remove control samples as there is only as single replicate of each.
 ps_wo_control<-subset_samples(bb16S_bac, Treatment != "none")
 ```
 
-Examine rarefaction curves. Plateau in most samples under the 5k read mark.
+Examine rarefaction curves. Plateau in most samples under the 1.5k read mark.
 
-```{r}
+```{#r}
 rarecurve(otu_table(ps_wo_control), step=50, cex=0.5, main = "Rarefaction Curve", ylab="Richness", xlab="Read Depth")
 ```
+
+```{r}
+set.seed(11)
+sort(sample_sums(ps_wo_control))
+summary(sample_sums(ps_wo_control))
+sd(sample_sums(ps_wo_control))
+bb16S_bac_rarefy<-rarefy_even_depth(ps_wo_control, sample.size = 1100, rngseed = 14, trimOTUs = T)
+#517 otus were removed during rarefaction. 
+
+#To move forward, we can hellinger transform and go from there.
+bb16S_bac_hellinger<-transform_sample_counts(ps_wo_control, function(x) sqrt(x / sum(x)))
+
+#maximum liklihood point estimates
+bb16S_bac_ML<- transform_sample_counts(ps_wo_control, function(x) x / sum(x))
+```
+
+#Alpha Diversity
+```{r}
+sf2a <- plot_richness(bb16S_bac_rarefy, x = "Site", measures = c("Shannon", "Observed", "Chao1"), color = "Site") + geom_boxplot() + ggtitle("Sampling Location") + theme_classic()  + xlab("Sampling Location")  + theme(axis.text=element_text(size=12, angle = 45, hjust = 0.75),
+        axis.title=element_text(size=14))
+
+sf2b <- plot_richness(bb16S_bac_rarefy, x = "Site", measures = c("Shannon", "Observed", "Chao1"), color = "Treatment") + geom_boxplot() + ggtitle("Sampling Location by Treatment") + theme_classic() + ylab("") + xlab("Sampling Location") +theme(axis.text=element_text(size=12, angle = 45, hjust = 0.75),
+        axis.title=element_text(size=14))
+
+sf2c <-plot_richness(bb16S_bac_rarefy, x = "Site", measures = c("Shannon", "Observed", "Chao1"), color = "Timepoint") + geom_boxplot() + ggtitle("Sampling Location by Sammpling Time") + theme_classic() + xlab("Sampling Location")  +theme(axis.text=element_text(size=12, angle = 45, hjust = 0.75),
+        axis.title=element_text(size=14))
+
+sf2d <-plot_richness(bb16S_bac_rarefy, x = "Timepoint", measures = c("Shannon", "Observed", "Chao1"), color = "Treatment") + geom_boxplot() + ggtitle("Treatment by Sampling Time") + theme_classic() + ylab("") + xlab("Sampling Timepoint")  +theme(axis.text=element_text(size=12, angle = 45, hjust =0.75),
+        axis.title=element_text(size=14))
+
+sf2 <- grid.arrange(sf2a, sf2b, sf2c, sf2d)
+plot(sf2)
+```
+
+Calculate alpha diversity metrics
+```{r}
+#create alpha diversity table and prep data to include grouping columns
+richness_BB16S_bac<-estimate_richness(bb16S_bac_rarefy, measures = c("Shannon", "Observed", "Chao1"))
+#add metadata
+richness_BB16S_bac$Site<-sample_data(bb16S_bac_rarefy)$Site
+richness_BB16S_bac$Timepoint<-sample_data(bb16S_bac_rarefy)$Timepoint
+richness_BB16S_bac$Treatment<-sample_data(bb16S_bac_rarefy)$Treatment
+richness_BB16S_bac$Treatment_Timepoint<-sample_data(bb16S_bac_rarefy)$Treatment_Timepoint
+```
+
+Tests of Shannon diversity 
+```{r}
+#ANOVA and Tukey's PW comparisons
+#Run a full 3 way ANOVA with interactions
+mod<-aov(Shannon ~ Site * Treatment * Timepoint, data = richness_BB16S_bac)
+#residuals look fine. 
+shapiro.test(mod$residuals)
+summary(mod)
+#Summary of model shows site and timepoint significant predictors
+#Interaction of site and timepoint
+
+#What about pairwise differences in site
+TukeyHSD(mod, "Site")
+plot(TukeyHSD(mod, "Site"), las=1, cex.axis = 0.4)
+
+#Several significant pairwise differences to accompany the significant global test for interaction term. We can
+TukeyHSD(mod, "Site:Timepoint")
+plot(TukeyHSD(mod, "Site:Timepoint"), las=1, cex.axis = 0.4)
+```
+
+Tests of Chao 1
+```{r}
+#ANOVA and Tukey's PW comparisons
+#Run a full 3 way ANOVA with interactions
+mod<-aov(Chao1 ~ Site * Treatment * Timepoint, data = richness_BB16S_bac)
+#residuals look fine. 
+shapiro.test(mod$residuals)
+plot(mod$residuals)
+summary(mod)
+#Site and the interactions with site are significant. 
+
+TukeyHSD(mod, "Site")
+plot(TukeyHSD(mod, "Site"), las=1, cex.axis = 0.4)
+```
+Tests of Observed - unique taxa in a sample. 
+```{r}
+#ANOVA and Tukey's PW comparisons
+#Run a full 3 way ANOVA with interactions
+mod<-aov(Observed ~ Site * Treatment * Timepoint, data = richness_BB16S_bac)
+#residuals look fine. 
+shapiro.test(mod$residuals)
+summary(mod)
+#Summary of model shows site and timepoint to be a significant predictor as well as the site interaction terms.
+TukeyHSD(mod, "Site")
+plot(TukeyHSD(mod, "Site"), las=1, cex.axis = 0.4)
+```
+
+#Beta diversity
+Full model with no strata argument
+
+```{r}
+#extract data from phyloseq object
+tab_adonis<-data.frame(otu_table(bb16S_bac_ML))
+sd_adonis<-data.frame(sample_data(bb16S_bac_ML))
+sd_adonis$Treatment <-as.factor(sd_adonis$Treatment)
+sd_adonis$Site <-as.factor(sd_adonis$Site)
+dist_w<-phyloseq::distance(bb16S_bac_ML, method =  "wunifrac")
+dist_uw<-phyloseq::distance(bb16S_bac_ML, method =  "unifrac")
+
+#full model with no strata arguemnt. Essentially the effect of each main effect without controlling for any potential groups. 
+
+#weighted 
+adonis2(dist_w ~  Site * Treatment * Timepoint, data= sd_adonis, permutations = 10000)
+#unweighted
+adonis2(dist_uw ~  Site * Treatment * Timepoint, data= sd_adonis, permutations = 10000)
+
+#with strata argument
+adonis2(dist_w ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
+adonis2(dist_uw ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
+
+
+##PW adonis w/ strata = site
+pairwise.adonis2(dist_uw ~ Treatment + Timepoint, strata = "Site",  data= sd_adonis, nperm = 10000)
+```
+
+```{r}
+#post-treatment samples
+bb16S_bac_ML_B<-subset_samples(bb16S_bac_ML, Timepoint == "B")
+
+#extract data from phyloseq object for post-treatment
+sd_adonis<-data.frame(sample_data(bb16S_bac_ML_B))
+sd_adonis$Treatment <-as.factor(sd_adonis$Treatment)
+sd_adonis$Site <-as.factor(sd_adonis$Site)
+dist_wb<-phyloseq::distance(bb16S_bac_ML_B, method =  "wunifrac")
+dist_uwb<-phyloseq::distance(bb16S_bac_ML_B, method =  "unifrac")
+
+#with strata argument
+adonis2(dist_wb ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
+adonis2(dist_uwb ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
+
+```
+

@@ -164,8 +164,7 @@ richness_BB16S_bac$Treatment_Timepoint<-sample_data(bb16S_bac_rarefy)$Treatment_
 chisq.test(richness_BB16S_bac$Region, richness_BB16S_bac$Site, simulate.p.value = TRUE)
 ```
 
-Tests of Shannon diversity - significant differences across sampling sites and interaction term of timepoint and site.
-
+Tests of Shannon diversity 
 ```{r}
 #ANOVA and Tukey's PW comparisons
 #Run a full 3 way ANOVA with interactions
