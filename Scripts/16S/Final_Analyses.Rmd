@@ -226,3 +226,6 @@ adonis2(dist_uwb ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, 
 
 ```
 
+
+
+https://stackoverflow.com/questions/61796484/stacked-bar-chart-with-count-above-and-below-x-axis
