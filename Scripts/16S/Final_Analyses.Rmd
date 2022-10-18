@@ -86,7 +86,7 @@ ps_wo_control<-subset_samples(bb16S_bac, Treatment != "none")
 
 Examine rarefaction curves. Plateau in most samples under the 1.5k read mark.
 
-```{#r}
+```{r}
 rarecurve(otu_table(ps_wo_control), step=50, cex=0.5, main = "Rarefaction Curve", ylab="Richness", xlab="Read Depth")
 ```
 
@@ -245,6 +245,8 @@ dist_uwb<-phyloseq::distance(bb16S_bac_ML_B, method =  "unifrac")
 adonis2(dist_wb ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
 adonis2(dist_uwb ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
 
+pairwise.adonis2(dist_uwb ~Treatment, strata = "Site", data = sd_adonis, nperm = 10000)
+
 #ordinations
 #weighted Unifrac
 ord_nmds<-ordinate(physeq = bb16S_bac_ML_B, method = "NMDS", distance = "wunifrac")
@@ -401,18 +403,22 @@ ggsave("../../Writing/Final_Figs/core_abund_wolegend.pdf")
 #color by core inclusion
 
 ggplot(dat, aes(x = otu, y=prev, fill = Core)) +
-  geom_bar(stat="identity") + scale_fill_manual(values=col_vector) + theme_classic() +
+  geom_bar(stat="identity") + # scale_fill_manual(values=col_vector) + 
+  theme_classic() +
   theme(axis.title.x=element_blank(),
         axis.text.x=element_blank(),
-        axis.ticks.x=element_blank()) + ylab("Prevalance") + theme(legend.position = "none")
+        axis.ticks.x=element_blank()) + ylab("Prevalance") + theme(legend.position = "none")  + theme(axis.text.y = element_text(size=12), axis.title.y = element_text(size = 16))
 ggsave("../../Writing/Final_Figs/core_prev_owlegend_Core.pdf")
 
 ggplot(dat, aes(x = otu, y=abund,  fill = Core)) +
-  geom_bar(stat="identity") + scale_fill_manual(values=col_vector) + theme_classic()  + scale_y_reverse() + theme(axis.text.x = element_text(size = 4 , angle = 45, hjust = 1))
+  geom_bar(stat="identity") + #scale_fill_manual(values=col_vector) + 
+  theme_classic()  + scale_y_reverse() + theme(axis.text.x = element_text(size = 4 , angle = 45, hjust = 1, face = "bold"))+ theme( axis.text.x=element_blank(), axis.ticks.x=element_blank())  + theme(axis.text.y = element_text(size=12), axis.title.y = element_text(size = 16))
 ggsave("../../Writing/Final_Figs/core_abund_Core.pdf")
 
 ggplot(dat, aes(x = otu, y=abund,  fill = Core)) +
-  geom_bar(stat="identity") + scale_fill_manual(values=col_vector) + theme_classic()  + scale_y_reverse() + theme(axis.text.x = element_text(size = 4 , angle = 45, hjust = 1)) + theme(legend.position = "none") + ylab("Proportional Abundance") + xlab("OTU ID")
+  geom_bar(stat="identity") + #scale_fill_manual(values=col_vector) +
+  theme_classic()  + scale_y_reverse() +# theme(axis.text.x = element_text(size = 4 , angle = 45, hjust = 1)) + 
+theme(legend.position = "none") + ylab("Proportional Abundance") + xlab("OTU") + theme(axis.text.x=element_blank(), axis.ticks.x=element_blank()) + theme(axis.text.y = element_text(size=12), axis.title.y = element_text(size = 16))
 ggsave("../../Writing/Final_Figs/core_abund_wolegend_Core.pdf")
 
 ```
