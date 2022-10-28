@@ -313,6 +313,9 @@ bb16S_bac_rarefy_tax_genus<-tax_glom(physeq = bb16S_bac_rarefy, taxrank = "Genus
 core_genus<-taxa_core(phyloseq_obj = bb16S_bac_rarefy_tax_genus, treatment = "Site", frequency = 1, abundance_threshold = 0.0001)
 core_genus<-taxa_core(phyloseq_obj = core_genus, frequency = 0.5, abundance_threshold = 0.0001)
 
+#table taxonomic info of core genera
+table(data.frame(tax_table(core_genus))$Order)
+table(data.frame(tax_table(core_genus))$Genus)
 #percent of genera assigned to core
 14/325
 #percent of reads accounted for by the core genera
