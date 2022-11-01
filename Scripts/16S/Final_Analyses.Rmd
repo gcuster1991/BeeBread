@@ -262,6 +262,28 @@ plot_ordination(physeq = bb16S_bac_ML_B, ordination = ord_nmds, type = "Samples"
 ggsave("../../Writing/Final_Figs/Time2_Unweighted_Unifrac_NMDS.pdf")
 
 ```
+
+create taxa bar plot to display makeup
+```{r}
+sort(table(data.frame(tax_table(bb16S_bac_rarefy))$Phylum), decreasing = TRUE)
+length(unique(data.frame(tax_table(bb16S_bac_rarefy))$Phylum))
+
+sort(table(data.frame(tax_table(bb16S_bac_rarefy))$Order), decreasing = TRUE)
+length(unique(data.frame(tax_table(bb16S_bac_rarefy))$Order))
+
+sort(table(data.frame(tax_table(bb16S_bac_rarefy))$Family), decreasing = TRUE)
+length(unique(data.frame(tax_table(bb16S_bac_rarefy))$Family))
+
+plot_bar(subset_samples(bb16S_bac_rarefy, Timepoint == "A"), fill = "Phylum")  + scale_fill_manual(values = col_vector) + geom_bar(stat = "identity")+ coord_flip()
+ggsave("../../Writing/Final_Figs/taxabarA.pdf")
+
+plot_bar(subset_samples(bb16S_bac_rarefy, Timepoint == "B"), fill = "Phylum")  + scale_fill_manual(values = col_vector) + geom_bar(stat = "identity")+ coord_flip()
+ggsave("../../Writing/Final_Figs/taxabarB.pdf")
+
+
+```
+
+
 #Core analysis
 
 ```{r}
