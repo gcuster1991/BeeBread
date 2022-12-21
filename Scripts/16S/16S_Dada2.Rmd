@@ -8,12 +8,12 @@ library(rlang)
 library(dada2) 
 ```
 
-
+set pathway to demultiplexed data.
 ```{r}
-#path_dm <- ("/Volumes/GoogleDrive/Other computers/Office_iMac/Quick_Sync/Lopez_Uribe/16S/16S_reads/demultiplexed/")
 path_dm <- ("/Users/gordoncuster/Desktop/Demultiplexed/")
 ```
 
+get forward and reverse file names
 ```{r}
 # Get full paths for all files and save them for downstream analyses
 # Forward and reverse fastq filenames have format: 
@@ -23,7 +23,7 @@ fnRs <- sort(list.files(path_dm, pattern="R2_", full.names = TRUE))
 sample.names <- sapply(strsplit(basename(fnFs), "R1_"), `[`, 2)
 ```
 
-
+set pathway to cutadapt and identify primer sequences
 ```{r}
 # Set up pathway to cutadapt (primer trimming tool) and test
 cutadapt <- "/Users/gordoncuster/.local/bin/bin/cutadapt" # CHANGE ME to the cutadapt path on your machine
@@ -34,6 +34,7 @@ FWD <- "GTGYCAGCMGCCGCGGTAA"  ## this is 515f
 REV <- "GGACTACNVGGGTWTCTAAT"  ## this is 806Br
 ```
 
+function for identifying primers in sequence reads
 ```{r}
 allOrients <- function(primer) {
     # Create all orientations of the input sequence
@@ -55,7 +56,7 @@ primerHits <- function(primer, fn) {
 }
 ```
 
-
+create subdirectory for filtered reads. Here, we remove any reads with N basepairs. 
 ```{r}
 # Name the N-filtered files to put them in filtN/ subdirectory
 fnFs.filtN <- file.path(path_dm, "filtN", basename(fnFs))
@@ -66,6 +67,7 @@ filterAndTrim(fnFs, fnFs.filtN, fnRs, fnRs.filtN, maxN = 0, multithread = TRUE)
 
 ```
 
+Count primers in "N-filtered" reads
 ```{r}
 rbind(FWD.ForwardReads = sapply(FWD.orients, primerHits, fn = fnFs.filtN[[1]]), 
       FWD.ReverseReads = sapply(FWD.orients, primerHits, fn = fnRs.filtN[[1]]), 
@@ -73,6 +75,7 @@ rbind(FWD.ForwardReads = sapply(FWD.orients, primerHits, fn = fnFs.filtN[[1]]),
       REV.ReverseReads = sapply(REV.orients, primerHits, fn = fnRs.filtN[[1]]))
 ```
 
+Run cutadapt to remove primers 
 ```{r}
 path.cut <- file.path(path_dm, "cutadapt")
 if(!dir.exists(path.cut)) dir.create(path.cut)
@@ -93,6 +96,7 @@ for(i in seq_along(fnFs)) {
 }
 ```
 
+Check for primer removal. 
 ```{r}
 rbind(FWD.ForwardReads = sapply(FWD.orients, primerHits, fn = fnFs.cut[[1]]), 
     FWD.ReverseReads = sapply(FWD.orients, primerHits, fn = fnRs.cut[[1]]), 
@@ -100,6 +104,7 @@ rbind(FWD.ForwardReads = sapply(FWD.orients, primerHits, fn = fnFs.cut[[1]]),
     REV.ReverseReads = sapply(REV.orients, primerHits, fn = fnRs.cut[[1]]))
 ```
 
+get names and pathways of cutadapt trimmmed reads. 
 ```{r}
 # Forward and reverse fastq filenames have the format:
 cutFs <- sort(list.files(path.cut, pattern = "R1_", full.names = TRUE))
@@ -111,7 +116,7 @@ cutRs <- sort(list.files(path.cut, pattern = "R2_", full.names = TRUE))
 head(sample.names)
 ```
 
-cutadapts not plotting
+Plot quality profiles to identify filtering cutoffs. 
 ```{r}
 plotQualityProfile(cutFs[1])
 plotQualityProfile(cutRs[1])
@@ -119,35 +124,36 @@ plotQualityProfile(cutRs[1])
 plotQualityProfile(fl = fnFs[1:10])
 ```
 
-
+new folder for filtered reads. 
 ```{r}
 filtFs <- file.path(path.cut, "filtered", basename(cutFs))
 filtRs <- file.path(path.cut, "filtered", basename(cutRs))
 ```
 
+Quality filter and plot filtered read quality profiles.
 ```{r}
-#out <- filterAndTrim(cutFs, filtFs, cutRs, filtRs, maxN = 0, maxEE = c(2, 2), 
-#    truncQ = 2,  rm.phix = TRUE, compress = TRUE, multithread = TRUE)  # on windows, set multithread = FALSE
 out <- filterAndTrim(cutFs, filtFs, cutRs, filtRs, truncQ = 11, truncLen = c(150,140),
               maxN=0, maxEE=c(1,1), rm.phix=TRUE,
               compress=TRUE, multithread=TRUE) # On Windows set multithread=FALSE
-#head(out)
 head(out)
 
 plotQualityProfile(filtFs[1:4])
 plotQualityProfile(filtRs[1:4])
 ```
 
+Learn errors
 ```{r}
 errF <- learnErrors(filtFs, nbases = 1e9, multithread = TRUE)
 errR <- learnErrors(filtRs, nbases = 1e9, multithread = TRUE)
 ```
 
+Check error plots
 ```{r}
 plotErrors(errF, nominalQ = TRUE)
 plotErrors(errR, nominalQ = TRUE)
 ```
 
+rereplicate
 ```{r}
 derepFs <- derepFastq(filtFs, verbose=TRUE)
 derepRs <- derepFastq(filtRs, verbose=TRUE)
@@ -156,19 +162,18 @@ names(derepFs) <- sample.names
 names(derepRs) <- sample.names
 ```
 
-
+correct via dada algo. 
 ```{r}
 dadaFs <- dada(derepFs, err = errF, multithread = TRUE)
 dadaRs <- dada(derepRs, err = errR, multithread = TRUE)
 ```
 
-
+merge paired reads with a min overlap of 10. 
 ```{r}
 mergers <- mergePairs(dadaFs, derepFs, dadaRs, derepRs, verbose=TRUE, returnRejects = T, minOverlap = 10)
 ```
 
-
-
+Make sequence table and remove all reads that are not 245 < x < 258 bp in length. 
 ```{r}
 seqtab_orig <- makeSequenceTable(mergers)
 dim(seqtab_orig)
@@ -178,11 +183,15 @@ table(nchar(getSequences(seqtab_orig)))
 seqtab <- seqtab_orig[,nchar(colnames(seqtab_orig)) %in% 245:258]
 dim(seqtab)
 ```
+
+Remove chimeras
 ```{r}
 seqtab.nochim <- removeBimeraDenovo(seqtab, method="consensus", multithread=TRUE, verbose=TRUE)
 dim(seqtab.nochim)
 table(nchar(getSequences(seqtab.nochim)))
 ```
+
+Count reads passing through pipeline
 ```{r}
 getN <- function(x) sum(getUniques(x))
 track <- cbind(out, sapply(dadaFs, getN), sapply(dadaRs, getN), sapply(mergers, 
@@ -198,7 +207,7 @@ colSums(track)
 colSums(track)[ncol(track)]/colSums(track)[1]
 ```
 
-
+Assign taxonomy with the silva species level database. 
 ```{r}
 taxa <- assignTaxonomy(seqtab.nochim, "/Volumes/GoogleDrive/My Drive/databases/silva_nr99_v138.1_wSpecies_train_set.fa.gz", multithread=TRUE)
 #taxa <- assignTaxonomy(seqtab.nochim, "/Users/gordoncuster/Desktop/silva_nr99_v138.1_train_set.fa.gz", multithread=TRUE)
@@ -213,7 +222,7 @@ head(taxa.print)
 ```
 
 
-create phylogenetic tree with phangorn defaults
+create phylogenetic tree with phangorn defaults for unifrac distances. 
 ```{r}
 sequences<-getSequences(seqtab.nochim)
 names(sequences)<-sequences
@@ -239,108 +248,4 @@ fitGTR <- optim.pml(fitGTR, model="GTR", optInv=TRUE, optGamma=TRUE,
                     rearrangement = "stochastic", control = pml.control(trace = 0))
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-```{r}
-# Create directory to hold the output from cutadapt
-if (!dir.exists(trimmed.fp)) dir.create(trimmed.fp)
-fnFs.cut <- file.path(trimmed.fp, basename(fnFs))
-fnRs.cut <- file.path(trimmed.fp, basename(fnRs))
-
-# Save the reverse complements of the primers to variables
-FWD.RC <- dada2:::rc(FWD)
-REV.RC <- dada2:::rc(REV)
-
-##  Create the cutadapt flags ##
-# Trim FWD and the reverse-complement of REV off of R1 (forward reads)
-R1.flags <- paste("-g", FWD, "-a", REV.RC, "--minimum-length 50") 
-
-# Trim REV and the reverse-complement of FWD off of R2 (reverse reads)
-R2.flags <- paste("-G", REV, "-A", FWD.RC, "--minimum-length 50") 
-
-# Run Cutadapt
-for (i in seq_along(fnFs)) {
-    system2(cutadapt, args = c(R1.flags, R2.flags, "-n", 2, # -n 2 required to remove FWD and REV from reads
-                               "-o", fnFs.cut[i], "-p", fnRs.cut[i], # output files
-                               fnFs.filtN[i], fnRs.filtN[i])) # input files
-}
-
-# As a sanity check, we will check for primers in the first cutadapt-ed sample:
-rbind(FWD.ForwardReads = sapply(FWD.orients, primerHits, fn = fnFs.cut[[1]]), 
-      FWD.ReverseReads = sapply(FWD.orients, primerHits, fn = fnRs.cut[[1]]), 
-      REV.ForwardReads = sapply(REV.orients, primerHits, fn = fnFs.cut[[1]]), 
-      REV.ReverseReads = sapply(REV.orients, primerHits, fn = fnRs.cut[[1]]))
-##                  Forward Complement Reverse RevComp
-## FWD.ForwardReads       0          0       0       0
-## FWD.ReverseReads       0          0       0       0
-## REV.ForwardReads       0          0       0       0
-## REV.ReverseReads       0          0       0       0
-```
-
-
-```{r}
-dir.create(filter.fp)
-    subF.fp <- file.path(filter.fp, "preprocessed_F") 
-    subR.fp <- file.path(filter.fp, "preprocessed_R") 
-dir.create(subF.fp)
-dir.create(subR.fp)
-
-# Move R1 and R2 from trimmed to separate forward/reverse sub-directories
-fnFs.Q <- file.path(subF.fp,  basename(fnFs)) 
-fnRs.Q <- file.path(subR.fp,  basename(fnRs))
-file.rename(from = fnFs.cut, to = fnFs.Q)
-##  [1] TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE
-## [15] TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE
-## [29] TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE
-## [43] TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE
-## [57] TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE
-## [71] TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE
-file.rename(from = fnRs.cut, to = fnRs.Q)
-##  [1] TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE
-## [15] TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE
-## [29] TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE
-## [43] TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE
-## [57] TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE
-## [71] TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE TRUE
-
-# File parsing; create file names and make sure that forward and reverse files match
-filtpathF <- file.path(subF.fp, "filtered") # files go into preprocessed_F/filtered/
-filtpathR <- file.path(subR.fp, "filtered") # ...
-fastqFs <- sort(list.files(subF.fp, pattern="fastq.gz"))
-fastqRs <- sort(list.files(subR.fp, pattern="fastq.gz"))
-if(length(fastqFs) != length(fastqRs)) stop("Forward and reverse files do not match.")
-```
-
-```{r}
-# If the number of samples is 20 or less, plot them all, otherwise, just plot 20 randomly selected samples
-if( length(fastqFs) <= 20) {
-  plotQualityProfile(paste0(subF.fp, "/", fastqFs))
-  plotQualityProfile(paste0(subR.fp, "/", fastqRs))
-} else {
-  rand_samples <- sample(size = 20, 1:length(fastqFs)) # grab 20 random samples to plot
-  fwd_qual_plots <- plotQualityProfile(paste0(subF.fp, "/", fastqFs[rand_samples]))
-  rev_qual_plots <- plotQualityProfile(paste0(subR.fp, "/", fastqRs[rand_samples]))
-}
-
-fwd_qual_plots
-
-ggplotly(fwd_qual_plots)
-ggplotly(rev_qual_plots)
-```
 

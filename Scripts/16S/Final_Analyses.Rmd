@@ -22,6 +22,7 @@ require(circlize)
 require(phangorn)
   require(gridExtra)
 require(pairwiseAdonis)
+  require(car)
 ```
 
 Load necessary files from Dada2 processing script.
@@ -141,7 +142,21 @@ Tests of Shannon diversity
 mod<-aov(Shannon ~ Site * Treatment * Timepoint, data = richness_BB16S_bac)
 #residuals look fine. 
 shapiro.test(mod$residuals)
+hist(mod$residuals)
 summary(mod)
+
+kruskal.test(Shannon ~ Site,  data = richness_BB16S_bac)
+kruskal.test(Shannon ~ interaction(Treatment, Site, Timepoint),  data = richness_BB16S_bac)
+kruskal.test(Shannon ~ Timepoint,  data = richness_BB16S_bac)
+
+
+leveneTest(Shannon ~ Site, data = richness_BB16S_bac)
+leveneTest(Shannon ~ Treatment, data = richness_BB16S_bac)
+leveneTest(Shannon ~ Timepoint, data = richness_BB16S_bac)
+
+#signifcant Levene's test for Site. We will run an additional Kruskal Wallis for site. 
+kruskal.test(Shannon ~ Site, data = richness_BB16S_bac)
+
 #Summary of model shows site and timepoint significant predictors
 #Interaction of site and timepoint
 
@@ -161,8 +176,13 @@ Tests of Chao 1
 mod<-aov(Chao1 ~ Site * Treatment * Timepoint, data = richness_BB16S_bac)
 #residuals look fine. 
 shapiro.test(mod$residuals)
-plot(mod$residuals)
+hist(mod$residuals)
 summary(mod)
+
+leveneTest(Chao1 ~ Site, data = richness_BB16S_bac)
+leveneTest(Chao1 ~ Treatment, data = richness_BB16S_bac)
+leveneTest(Chao1 ~ Timepoint, data = richness_BB16S_bac)
+
 #Site and the interactions with site are significant. 
 
 TukeyHSD(mod, "Site")
@@ -176,6 +196,12 @@ mod<-aov(Observed ~ Site * Treatment * Timepoint, data = richness_BB16S_bac)
 #residuals look fine. 
 shapiro.test(mod$residuals)
 summary(mod)
+hist(mod$residuals)
+
+leveneTest(Observed ~ Site, data = richness_BB16S_bac)
+leveneTest(Observed ~ Treatment, data = richness_BB16S_bac)
+leveneTest(Observed ~ Timepoint, data = richness_BB16S_bac)
+
 #Summary of model shows site and timepoint to be a significant predictor as well as the site interaction terms.
 TukeyHSD(mod, "Site")
 plot(TukeyHSD(mod, "Site"), las=1, cex.axis = 0.4)
@@ -198,7 +224,6 @@ dist_uw<-phyloseq::distance(bb16S_bac_ML, method =  "unifrac")
 #weighted
 adonis2(dist_w ~  Site * Treatment * Timepoint, data= sd_adonis, permutations = 10000)
 #unweighted
-betadisper(dist)
 adonis2(dist_uw ~  Site * Treatment * Timepoint, data= sd_adonis, permutations = 10000)
 
 #with strata argument
@@ -214,15 +239,15 @@ Ordinations
 #weighted Unifrac
 ord_nmds<-ordinate(physeq = bb16S_bac_ML, method = "NMDS", distance = "wunifrac")
 ord_nmds$stress
-plot_ordination(physeq = bb16S_bac_ML, ordination = ord_nmds, type = "Samples", color = "Site", shape = "Treatment" ) + theme_classic() + ggtitle("Weighted Unifrac NMDS") + theme(plot.title = element_text(hjust = 0.5, size = 18)) + geom_point(size = 3)
-ggsave("../../Writing/Final_Figs/Weighted_Unifrac_NMDS.pdf")
+plot_ordination(physeq = bb16S_bac_ML, ordination = ord_nmds, type = "Samples", color = "Site", shape = "Treatment" ) + theme_classic() + ggtitle("Weighted Unifrac NMDS") + theme(plot.title = element_text(hjust = 0.5, size = 18)) + geom_point(size = 3) + theme(axis.text = element_text(size = 14), axis.title=element_text(size=14))
+ggsave("../../Writing/Final_Figs/Weighted_Unifrac_NMDS.eps")
 #strongest grouping by Site. Time point also has a smaller effect, but these groupings are more clear than in the CAP ordination. There are several outlier samples that ordinate far to the right on the NMDS1 axis. 
 
 #unweighted Unifrac
 ord_nmds<-ordinate(physeq = bb16S_bac_ML, method = "NMDS", distance = "unifrac")
 ord_nmds$stress
-plot_ordination(physeq = bb16S_bac_ML, ordination = ord_nmds, type = "Samples", color = "Site", shape = "Treatment" ) + theme_classic() + ggtitle("Unweighted Unifrac NMDS") + theme(plot.title = element_text(hjust = 0.5, size = 18)) + geom_point(size = 3)
-ggsave("../../Writing/Final_Figs/Unweighted_Unifrac_NMDS.pdf")
+plot_ordination(physeq = bb16S_bac_ML, ordination = ord_nmds, type = "Samples", color = "Site", shape = "Treatment" ) + theme_classic() + ggtitle("Unweighted Unifrac NMDS") + theme(plot.title = element_text(hjust = 0.5, size = 18)) + geom_point(size = 3) + theme(axis.text = element_text(size = 14), axis.title=element_text(size=14))
+ggsave("../../Writing/Final_Figs/Unweighted_Unifrac_NMDS.eps")
 
 
 ```
@@ -342,6 +367,19 @@ table(data.frame(tax_table(core_genus))$Genus)
 14/325
 #percent of reads accounted for by the core genera
 sum(sample_sums(core_genus))/sum(sample_sums(bb16S_bac_rarefy))
+
+#extract sequence of core genera. 
+core_genus_names<-rownames(tax_table(core_genus))
+core_genera_rep_seq<-seq_df_w_OTUID[seq_df_w_OTUID$OTUID %in% str_split(core_genus_names, pattern = "_", 2, simplify = T)[,2],] 
+taxa_df<-data.frame(taxa)
+core_genera_tax <- taxa_df[rownames(taxa_df) %in% core_genera_rep_seq$Sequence,]
+core_genera_tax$Sequence <- rownames(core_genera_tax)
+
+merged_tax_core_genera_rep_seq<-full_join(core_genera_tax, core_genera_rep_seq)
+
+write.csv(merged_tax_core_genera_rep_seq, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/Core_genera_taxa_rep_seq.csv")
+write.csv(core_genera_rep_seq, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/Core_Genera_Rep_Seqs.csv")
+write.csv(core_genera_tax, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/Core_Genera_tax.csv")
 ```
 
 Core Genus
@@ -363,15 +401,15 @@ adonis2(dist_core_uw_genus ~  Site * Treatment * Timepoint, data= sd_adonis, str
 #weighted Unifrac
 ord_nmds<-ordinate(physeq = core_genus, method = "NMDS", distance = "wunifrac")
 ord_nmds$stress
-plot_ordination(physeq = core_genus, ordination = ord_nmds, type = "Samples", color = "Site", shape = "Treatment" ) + theme_classic() + ggtitle("Core Genera Weighted Unifrac NMDS") + theme(plot.title = element_text(hjust = 0.5, size = 18)) + geom_point(size = 3)
-ggsave("../../Writing/Final_Figs/CoreGenus_Weighted_Unifrac_NMDS.pdf")
+plot_ordination(physeq = core_genus, ordination = ord_nmds, type = "Samples", color = "Site", shape = "Treatment" ) + theme_classic() + ggtitle("Core Genera Weighted Unifrac NMDS") + theme(plot.title = element_text(hjust = 0.5, size = 18)) + geom_point(size = 3)  + theme(axis.text = element_text(size = 14), axis.title=element_text(size=14))
+ggsave("../../Writing/Final_Figs/CoreGenus_Weighted_Unifrac_NMDS.eps")
 #strongest grouping by Site. Time point also has a smaller effect, but these groupings are more clear than in the CAP ordination. There are several outlier samples that ordinate far to the right on the NMDS1 axis. 
 
 #unweighted Unifrac
 ord_nmds<-ordinate(physeq = core_genus, method = "NMDS", distance = "unifrac")
 ord_nmds$stress
-plot_ordination(physeq = core_genus, ordination = ord_nmds, type = "Samples", color = "Site", shape = "Treatment" ) + theme_classic() + ggtitle("Core Genera Unweighted Unifrac NMDS") + theme(plot.title = element_text(hjust = 0.5, size = 18)) + geom_point(size = 3)
-ggsave("../../Writing/Final_Figs/CoreGenus_Unweighted_Unifrac_NMDS.pdf")
+plot_ordination(physeq = core_genus, ordination = ord_nmds, type = "Samples", color = "Site", shape = "Treatment" ) + theme_classic() + ggtitle("Core Genera Unweighted Unifrac NMDS") + theme(plot.title = element_text(hjust = 0.5, size = 18)) + geom_point(size = 3) + theme(axis.text = element_text(size = 14), axis.title=element_text(size=14))
+ggsave("../../Writing/Final_Figs/CoreGenus_Unweighted_Unifrac_NMDS.eps")
 ```
 
 
@@ -414,37 +452,37 @@ ggplot(dat, aes(x = otu, y=prev, fill = Phylum)) +
   theme(axis.title.x=element_blank(),
         axis.text.x=element_blank(),
         axis.ticks.x=element_blank()) + ylab("Prevalance") + theme(legend.position = "none")
-ggsave("../../Writing/Final_Figs/core_prev_owlegend.pdf")
+#ggsave("../../Writing/Final_Figs/core_prev_owlegend.eps")
 
 ggplot(dat, aes(x = otu, y=abund,  fill = Phylum)) +
   geom_bar(stat="identity") + scale_fill_manual(values=col_vector) + theme_classic()  + scale_y_reverse() + theme(axis.text.x = element_text(size = 4 , angle = 45, hjust = 1))
-ggsave("../../Writing/Final_Figs/core_abund.pdf")
+#ggsave("../../Writing/Final_Figs/core_abund.eps")
 
 ggplot(dat, aes(x = otu, y=abund,  fill = Phylum)) +
   geom_bar(stat="identity") + scale_fill_manual(values=col_vector) + theme_classic()  + scale_y_reverse() + theme(axis.text.x = element_text(size = 4 , angle = 45, hjust = 1)) + theme(legend.position = "none") + ylab("Proportional Abundance") + xlab("OTU ID")
-ggsave("../../Writing/Final_Figs/core_abund_wolegend.pdf")
+#ggsave("../../Writing/Final_Figs/core_abund_wolegend.eps")
 
 
 #color by core inclusion
 
 ggplot(dat, aes(x = otu, y=prev, fill = Core)) +
-  geom_bar(stat="identity") + # scale_fill_manual(values=col_vector) + 
+  geom_bar(stat="identity") + scale_fill_manual(values=c("#88CCEE", "#999933")) + 
   theme_classic() +
   theme(axis.title.x=element_blank(),
         axis.text.x=element_blank(),
         axis.ticks.x=element_blank()) + ylab("Prevalance") + theme(legend.position = "none")  + theme(axis.text.y = element_text(size=12), axis.title.y = element_text(size = 16))
-ggsave("../../Writing/Final_Figs/core_prev_owlegend_Core.pdf")
+ggsave("../../Writing/Final_Figs/core_prev_owlegend_Core.eps")
 
 ggplot(dat, aes(x = otu, y=abund,  fill = Core)) +
-  geom_bar(stat="identity") + #scale_fill_manual(values=col_vector) + 
+  geom_bar(stat="identity") + scale_fill_manual(values=c("#88CCEE", "#999933")) + 
   theme_classic()  + scale_y_reverse() + theme(axis.text.x = element_text(size = 4 , angle = 45, hjust = 1, face = "bold"))+ theme( axis.text.x=element_blank(), axis.ticks.x=element_blank())  + theme(axis.text.y = element_text(size=12), axis.title.y = element_text(size = 16))
-ggsave("../../Writing/Final_Figs/core_abund_Core.pdf")
+ggsave("../../Writing/Final_Figs/core_abund_Core.eps")
 
 ggplot(dat, aes(x = otu, y=abund,  fill = Core)) +
-  geom_bar(stat="identity") + #scale_fill_manual(values=col_vector) +
+  geom_bar(stat="identity") +  scale_fill_manual(values=c("#88CCEE", "#999933")) +
   theme_classic()  + scale_y_reverse() +# theme(axis.text.x = element_text(size = 4 , angle = 45, hjust = 1)) + 
 theme(legend.position = "none") + ylab("Proportional Abundance") + xlab("OTU") + theme(axis.text.x=element_blank(), axis.ticks.x=element_blank()) + theme(axis.text.y = element_text(size=12), axis.title.y = element_text(size = 16))
-ggsave("../../Writing/Final_Figs/core_abund_wolegend_Core.pdf")
+ggsave("../../Writing/Final_Figs/core_abund_wolegend_Core.eps")
 
 ```
 
