@@ -144,21 +144,16 @@ mod<-aov(Shannon ~ Site * Treatment * Timepoint, data = richness_BB16S_bac)
 shapiro.test(mod$residuals)
 hist(mod$residuals)
 summary(mod)
+#Summary of model shows site and timepoint significant predictors
+#Interaction of site and timepoint
 
-kruskal.test(Shannon ~ Site,  data = richness_BB16S_bac)
-kruskal.test(Shannon ~ interaction(Treatment, Site, Timepoint),  data = richness_BB16S_bac)
-kruskal.test(Shannon ~ Timepoint,  data = richness_BB16S_bac)
-
-
+#test of heterogentity 
 leveneTest(Shannon ~ Site, data = richness_BB16S_bac)
 leveneTest(Shannon ~ Treatment, data = richness_BB16S_bac)
 leveneTest(Shannon ~ Timepoint, data = richness_BB16S_bac)
 
-#signifcant Levene's test for Site. We will run an additional Kruskal Wallis for site. 
+#significant Levene's test for Site. We will run an additional Kruskal Wallis for site. 
 kruskal.test(Shannon ~ Site, data = richness_BB16S_bac)
-
-#Summary of model shows site and timepoint significant predictors
-#Interaction of site and timepoint
 
 #What about pairwise differences in site
 TukeyHSD(mod, "Site")
@@ -240,14 +235,14 @@ Ordinations
 ord_nmds<-ordinate(physeq = bb16S_bac_ML, method = "NMDS", distance = "wunifrac")
 ord_nmds$stress
 plot_ordination(physeq = bb16S_bac_ML, ordination = ord_nmds, type = "Samples", color = "Site", shape = "Treatment" ) + theme_classic() + ggtitle("Weighted Unifrac NMDS") + theme(plot.title = element_text(hjust = 0.5, size = 18)) + geom_point(size = 3) + theme(axis.text = element_text(size = 14), axis.title=element_text(size=14))
-ggsave("../../Writing/Final_Figs/Weighted_Unifrac_NMDS.eps")
+#ggsave("../../Writing/Final_Figs/Weighted_Unifrac_NMDS.eps")
 #strongest grouping by Site. Time point also has a smaller effect, but these groupings are more clear than in the CAP ordination. There are several outlier samples that ordinate far to the right on the NMDS1 axis. 
 
 #unweighted Unifrac
 ord_nmds<-ordinate(physeq = bb16S_bac_ML, method = "NMDS", distance = "unifrac")
 ord_nmds$stress
 plot_ordination(physeq = bb16S_bac_ML, ordination = ord_nmds, type = "Samples", color = "Site", shape = "Treatment" ) + theme_classic() + ggtitle("Unweighted Unifrac NMDS") + theme(plot.title = element_text(hjust = 0.5, size = 18)) + geom_point(size = 3) + theme(axis.text = element_text(size = 14), axis.title=element_text(size=14))
-ggsave("../../Writing/Final_Figs/Unweighted_Unifrac_NMDS.eps")
+#ggsave("../../Writing/Final_Figs/Unweighted_Unifrac_NMDS.eps")
 
 
 ```
@@ -368,18 +363,17 @@ table(data.frame(tax_table(core_genus))$Genus)
 #percent of reads accounted for by the core genera
 sum(sample_sums(core_genus))/sum(sample_sums(bb16S_bac_rarefy))
 
-#extract sequence of core genera. 
+#extract sequence of core genera and export for tree building 
 core_genus_names<-rownames(tax_table(core_genus))
 core_genera_rep_seq<-seq_df_w_OTUID[seq_df_w_OTUID$OTUID %in% str_split(core_genus_names, pattern = "_", 2, simplify = T)[,2],] 
 taxa_df<-data.frame(taxa)
 core_genera_tax <- taxa_df[rownames(taxa_df) %in% core_genera_rep_seq$Sequence,]
 core_genera_tax$Sequence <- rownames(core_genera_tax)
-
 merged_tax_core_genera_rep_seq<-full_join(core_genera_tax, core_genera_rep_seq)
 
-write.csv(merged_tax_core_genera_rep_seq, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/Core_genera_taxa_rep_seq.csv")
-write.csv(core_genera_rep_seq, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/Core_Genera_Rep_Seqs.csv")
-write.csv(core_genera_tax, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/Core_Genera_tax.csv")
+#write.csv(merged_tax_core_genera_rep_seq, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/Core_genera_taxa_rep_seq.csv")
+#write.csv(core_genera_rep_seq, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/Core_Genera_Rep_Seqs.csv")
+#write.csv(core_genera_tax, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/Core_Genera_tax.csv")
 ```
 
 Core Genus
@@ -507,10 +501,10 @@ samp_d<-data.frame(sample_data(acetobacter_glomed))
 merged_dat<-cbind(dat, samp_d)
 #check to make sure md and otu table are in same order. All should be true. 
 table(merged_dat$X == rownames(merged_dat))
-mod<-aov(OTU_40 ~ Treatment, data = merged_dat)
-summary(mod)
-plot(residuals(mod))
-boxplot(merged_dat$OTU_40 ~ merged_dat$Treatment)
+##mod<-aov(OTU_40 ~ Treatment, data = merged_dat)
+#summary(mod)
+#plot(residuals(mod))
+#boxplot(merged_dat$OTU_40 ~ merged_dat$Treatment)
 
 #baruta for individual taxa
 baruta_aceto<-baruta_phyloseq(physeq = acetobacter, GroupingVar = "Treatment")
@@ -524,19 +518,25 @@ for(i in 1:length(names(data.frame(otu_table(acetobacter))))){
   boxplot(unlist(aceto_df[i]) ~ aceto_df$Treatment)
 }
 
+#very zero inflated so we will not use anova. 
+#for(i in 1:length(names(data.frame(otu_table(acetobacter))))){
+#  mod<-aov(unlist(aceto_df[i]) ~ aceto_df$Treatment)
+#  summary(mod)
+#  print(summary(mod))
+#  print(names(aceto_df[i]))
+#}
+
 for(i in 1:length(names(data.frame(otu_table(acetobacter))))){
-  mod<-aov(unlist(aceto_df[i]) ~ aceto_df$Treatment)
-  summary(mod)
-  print(summary(mod))
+  mod<-kruskal.test(unlist(aceto_df[i]) ~ aceto_df$Treatment)
+  print(mod)
   print(names(aceto_df[i]))
 }
 
-#no significant differences across treatment types
+#OTU 82 ID'ed as significantly different among groups
+pairwise.wilcox.test(aceto_df$OTU_82, aceto_df$Treatment)
+boxplot(aceto_df$OTU_82~ aceto_df$Treatment)
 
-#DESEQ
-bb16S_bac_Rare_B<-subset_samples(bb16S_bac_rarefy, Timepoint == "B")
-aceto_df_rare <- subset_taxa(bb16S_bac_Rare_B, Family =="Acetobacteraceae")
-aceto_df_rare <- filter_taxa(aceto_df_rare, function(x) sum(x) > 25, TRUE)
+#no significant differences across treatment types
 ```
 
 
@@ -554,16 +554,6 @@ merged_dat<-cbind(dat, samp_d)
 #check to make sure md and otu table are in same order. All should be true. 
 table(merged_dat$X == rownames(merged_dat))
 
-
-mod<-aov(OTU_5 ~ Treatment, data = merged_dat)
-summary(mod)
-shapiro.test(mod$residuals)
-plot(residuals(mod))
-boxplot(merged_dat$OTU_5 ~ merged_dat$Treatment)
-
-
-#baruta for individual taxa
-baruta_lacto<-baruta_phyloseq(physeq = lactobac, GroupingVar = "Treatment")
 lacto_df <- cbind(data.frame(otu_table(lactobac)), data.frame(sample_data(lactobac)))
 table(lacto_df$X == rownames(lacto_df))
 boxplot(lacto_df$OTU_530 ~ lacto_df$Treatment)
@@ -576,9 +566,8 @@ for(i in 1:length(names(data.frame(otu_table(lactobac))))){
 }
 
 for(i in 1:length(names(data.frame(otu_table(lactobac))))){
-  mod<-aov(unlist(lacto_df[i]) ~ lacto_df$Treatment)
-  summary(mod)
-  print(summary(mod))
+   mod<-kruskal.test(unlist(lacto_df[i]) ~ lacto_df$Treatment)
+  print(mod)
   print(names(lacto_df[i]))
 }
 ```
