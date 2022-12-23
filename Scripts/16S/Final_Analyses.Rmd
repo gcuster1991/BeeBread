@@ -355,6 +355,14 @@ bb16S_bac_rarefy_tax_genus<-tax_glom(physeq = bb16S_bac_rarefy, taxrank = "Genus
 core_genus<-taxa_core(phyloseq_obj = bb16S_bac_rarefy_tax_genus, treatment = "Site", frequency = 1, abundance_threshold = 0.0001)
 core_genus<-taxa_core(phyloseq_obj = core_genus, frequency = 0.5, abundance_threshold = 0.0001)
 
+otu_genus_core <- data.frame(otu_table(core_genus))
+tax_genus_core <- data.frame(tax_table(core_genus))
+samp_data_genus_core <- data.frame(sample_data(core_genus))
+
+write.csv(otu_genus_core, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/otu_genus_core.csv")
+write.csv(tax_genus_core, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/tax_genus_core.csv")
+write.csv(samp_data_genus_core, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/samp_data_genus_core.csv")
+
 #table taxonomic info of core genera
 table(data.frame(tax_table(core_genus))$Order)
 table(data.frame(tax_table(core_genus))$Genus)
@@ -507,7 +515,6 @@ table(merged_dat$X == rownames(merged_dat))
 #boxplot(merged_dat$OTU_40 ~ merged_dat$Treatment)
 
 #baruta for individual taxa
-baruta_aceto<-baruta_phyloseq(physeq = acetobacter, GroupingVar = "Treatment")
 aceto_df <- cbind(data.frame(otu_table(acetobacter)), data.frame(sample_data(acetobacter)))
 table(aceto_df$X == rownames(aceto_df))
 boxplot(aceto_df$OTU_82 ~ aceto_df$Treatment)
@@ -535,6 +542,8 @@ for(i in 1:length(names(data.frame(otu_table(acetobacter))))){
 #OTU 82 ID'ed as significantly different among groups
 pairwise.wilcox.test(aceto_df$OTU_82, aceto_df$Treatment)
 boxplot(aceto_df$OTU_82~ aceto_df$Treatment)
+ggplot(aceto_df, aes(x = Treatment, y = OTU_82, color = Treatment)) + geom_boxplot()  + theme_classic()  + theme(axis.text = element_text(size = 14), axis.title=element_text(size=14))
+ggsave("/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/Final_Figs/OTU_82_ML.eps")
 
 #no significant differences across treatment types
 ```
