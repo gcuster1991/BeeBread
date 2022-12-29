@@ -203,8 +203,6 @@ plot(TukeyHSD(mod, "Site"), las=1, cex.axis = 0.4)
 ```
 
 #Beta diversity
-Full model with no strata argument
-
 ```{r}
 #extract data from phyloseq object
 tab_adonis<-data.frame(otu_table(bb16S_bac_ML))
@@ -217,17 +215,20 @@ dist_uw<-phyloseq::distance(bb16S_bac_ML, method =  "unifrac")
 #full model with no strata arguemnt. Essentially the effect of each main effect without controlling for any potential groups. 
 
 #weighted
-adonis2(dist_w ~  Site * Treatment * Timepoint, data= sd_adonis, permutations = 10000)
+adonis2(dist_w ~  Site * Treatment * Timepoint, data= sd_adonis, permutations = 1000)
 #unweighted
-adonis2(dist_uw ~  Site * Treatment * Timepoint, data= sd_adonis, permutations = 10000)
+adonis2(dist_uw ~  Site * Treatment * Timepoint, data= sd_adonis, permutations = 1000)
+pairwise.adonis2(dist_uw ~ Treatment + Timepoint, strata = "Site",  data= sd_adonis, nperm = 1000)
+
 
 #with strata argument
-adonis2(dist_w ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
-adonis2(dist_uw ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
+adonis2(dist_w ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
+adonis2(dist_uw ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
 
 
 ##PW adonis w/ strata = site
 pairwise.adonis2(dist_uw ~ Treatment + Timepoint, strata = "Site",  data= sd_adonis, nperm = 10000)
+pairwise.adonis2(dist_w ~ Treatment + Timepoint, strata = "Site",  data= sd_adonis, nperm = 10000)
 ```
 Ordinations
 ```{r}
@@ -251,35 +252,35 @@ plot_ordination(physeq = bb16S_bac_ML, ordination = ord_nmds, type = "Samples", 
 Sampling time 2 (post treatment)
 ```{r}
 #post-treatment samples
-bb16S_bac_ML_B<-subset_samples(bb16S_bac_ML, Timepoint == "B")
+bb16S_bac_ML_A<-subset_samples(bb16S_bac_ML, Timepoint == "A")
 
 #extract data from phyloseq object for post-treatment
-sd_adonis<-data.frame(sample_data(bb16S_bac_ML_B))
+sd_adonis<-data.frame(sample_data(bb16S_bac_ML_A))
 sd_adonis$Treatment <-as.factor(sd_adonis$Treatment)
 sd_adonis$Site <-as.factor(sd_adonis$Site)
-dist_wb<-phyloseq::distance(bb16S_bac_ML_B, method =  "wunifrac")
-dist_uwb<-phyloseq::distance(bb16S_bac_ML_B, method =  "unifrac")
+dist_wb<-phyloseq::distance(bb16S_bac_ML_A, method =  "wunifrac")
+dist_uwb<-phyloseq::distance(bb16S_bac_ML_A, method =  "unifrac")
 
 
 #with strata argument
-adonis2(dist_wb ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
-adonis2(dist_uwb ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
+adonis2(dist_wb ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
+adonis2(dist_uwb ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
 
-pairwise.adonis2(dist_uwb ~Treatment, strata = "Site", data = sd_adonis, nperm = 10000)
+pairwise.adonis2(dist_uwb ~Treatment, strata = "Site", data = sd_adonis, nperm = 1000)
 
 #ordinations
 #weighted Unifrac
-ord_nmds<-ordinate(physeq = bb16S_bac_ML_B, method = "NMDS", distance = "wunifrac")
+ord_nmds<-ordinate(physeq = bb16S_bac_ML_A, method = "NMDS", distance = "wunifrac")
 ord_nmds$stress
-plot_ordination(physeq = bb16S_bac_ML_B, ordination = ord_nmds, type = "Samples", color = "Site", shape = "Treatment" ) + theme_classic() + ggtitle("Weighted Unifrac NMDS") + theme(plot.title = element_text(hjust = 0.5, size = 18)) + geom_point(size = 3)
-ggsave("../../Writing/Final_Figs/Time2_Weighted_Unifrac_NMDS.pdf")
-#strongest grouping by Site. Time point also has a smaller effect, but these groupings are more clear than in the CAP ordination. There are several outlier samples that ordinate far to the right on the NMDS1 axis. 
+plot_ordination(physeq = bb16S_bac_ML_A, ordination = ord_nmds, type = "Samples", color = "Site", shape = "Treatment" ) + theme_classic() + ggtitle("Weighted Unifrac NMDS") + theme(plot.title = element_text(hjust = 0.5, size = 18)) + geom_point(size = 3)
+#ggsave("../../Writing/Final_Figs/Time2_Weighted_Unifrac_NMDS.pdf")
+
 
 #unweighted Unifrac
-ord_nmds<-ordinate(physeq = bb16S_bac_ML_B, method = "NMDS", distance = "unifrac")
+ord_nmds<-ordinate(physeq = bb16S_bac_ML_A, method = "NMDS", distance = "unifrac")
 ord_nmds$stress
-plot_ordination(physeq = bb16S_bac_ML_B, ordination = ord_nmds, type = "Samples", color = "Site", shape = "Treatment" ) + theme_classic() + ggtitle("Unweighted Unifrac NMDS") + theme(plot.title = element_text(hjust = 0.5, size = 18)) + geom_point(size = 3)
-ggsave("../../Writing/Final_Figs/Time2_Unweighted_Unifrac_NMDS.pdf")
+plot_ordination(physeq = bb16S_bac_ML_A, ordination = ord_nmds, type = "Samples", color = "Site", shape = "Treatment" ) + theme_classic() + ggtitle("Unweighted Unifrac NMDS") + theme(plot.title = element_text(hjust = 0.5, size = 18)) + geom_point(size = 3)
+#ggsave("../../Writing/Final_Figs/Time2_Unweighted_Unifrac_NMDS.pdf")
 
 ```
 
@@ -295,10 +296,10 @@ sort(table(data.frame(tax_table(bb16S_bac_rarefy))$Family), decreasing = TRUE)
 length(unique(data.frame(tax_table(bb16S_bac_rarefy))$Family))
 
 plot_bar(subset_samples(bb16S_bac_rarefy, Timepoint == "A"), fill = "Phylum")  + scale_fill_manual(values = col_vector) + geom_bar(stat = "identity")+ coord_flip()
-ggsave("../../Writing/Final_Figs/taxabarA.pdf")
+#ggsave("../../Writing/Final_Figs/taxabarA.pdf")
 
 plot_bar(subset_samples(bb16S_bac_rarefy, Timepoint == "B"), fill = "Phylum")  + scale_fill_manual(values = col_vector) + geom_bar(stat = "identity")+ coord_flip()
-ggsave("../../Writing/Final_Figs/taxabarB.pdf")
+#ggsave("../../Writing/Final_Figs/taxabarB.pdf")
 
 
 ```
@@ -359,9 +360,9 @@ otu_genus_core <- data.frame(otu_table(core_genus))
 tax_genus_core <- data.frame(tax_table(core_genus))
 samp_data_genus_core <- data.frame(sample_data(core_genus))
 
-write.csv(otu_genus_core, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/otu_genus_core.csv")
-write.csv(tax_genus_core, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/tax_genus_core.csv")
-write.csv(samp_data_genus_core, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/samp_data_genus_core.csv")
+#write.csv(otu_genus_core, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/otu_genus_core.csv")
+#write.csv(tax_genus_core, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/tax_genus_core.csv")
+#write.csv(samp_data_genus_core, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/samp_data_genus_core.csv")
 
 #table taxonomic info of core genera
 table(data.frame(tax_table(core_genus))$Order)
@@ -413,6 +414,27 @@ ord_nmds$stress
 plot_ordination(physeq = core_genus, ordination = ord_nmds, type = "Samples", color = "Site", shape = "Treatment" ) + theme_classic() + ggtitle("Core Genera Unweighted Unifrac NMDS") + theme(plot.title = element_text(hjust = 0.5, size = 18)) + geom_point(size = 3) + theme(axis.text = element_text(size = 14), axis.title=element_text(size=14))
 ggsave("../../Writing/Final_Figs/CoreGenus_Unweighted_Unifrac_NMDS.eps")
 ```
+
+
+Core genus at time point 2 
+```{r}
+core_genus_A <- subset_samples(core_genus, Timepoint == "A")
+
+#core asv adonis
+tab_adonis<-data.frame(otu_table(core_genus_A))
+sd_adonis<-data.frame(sample_data(core_genus_A))
+sd_adonis$Treatment <-as.factor(sd_adonis$Treatment)
+sd_adonis$Site <-as.factor(sd_adonis$Site)
+dist_core_w_genus<-phyloseq::distance(core_genus_A, method =  "wunifrac")
+dist_core_uw_genus<-phyloseq::distance(core_genus_A, method =  "unifrac")
+
+#weighted unifrac
+adonis2(dist_core_w_genus ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
+#unweighted unifrac
+adonis2(dist_core_uw_genus ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
+```
+
+
 
 
 Visualization of core microbiome using barplot
@@ -495,12 +517,12 @@ ggsave("../../Writing/Final_Figs/core_abund_wolegend_Core.eps")
 
 
 #### Acidophilic bacteria 
-analysis of lactic acid bacteria and acetic acid bacteria at time pont 2 (following application)
+analysis of lactic acid bacteria and acetic acid bacteria at time point 2 (following application)
 ```{r}
-bb16S_bac_ML_B<-subset_samples(bb16S_bac_ML, Timepoint == "B")
+bb16S_bac_ML_A<-subset_samples(bb16S_bac_ML, Timepoint == "A")
 #ACETO
 #36 taxa
-acetobacter <- subset_taxa(bb16S_bac_ML_B, Family =="Acetobacteraceae")
+acetobacter <- subset_taxa(bb16S_bac_ML_A, Family =="Acetobacteraceae")
 acetobacter_glomed<- tax_glom(acetobacter, taxrank = "Family")
 
 #anova for all taxa combined
@@ -539,13 +561,11 @@ for(i in 1:length(names(data.frame(otu_table(acetobacter))))){
   print(names(aceto_df[i]))
 }
 
-#OTU 82 ID'ed as significantly different among groups
-pairwise.wilcox.test(aceto_df$OTU_82, aceto_df$Treatment)
-boxplot(aceto_df$OTU_82~ aceto_df$Treatment)
-ggplot(aceto_df, aes(x = Treatment, y = OTU_82, color = Treatment)) + geom_boxplot()  + theme_classic()  + theme(axis.text = element_text(size = 14), axis.title=element_text(size=14))
-ggsave("/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/Final_Figs/OTU_82_ML.eps")
 
-#no significant differences across treatment types
+pairwise.wilcox.test(aceto_df$OTU_82, aceto_df$Treatment)
+ggplot(aceto_df, aes(x = Treatment, y = OTU_82, color = Treatment)) + geom_boxplot()  + theme_classic()  + theme(axis.text = element_text(size = 14), axis.title=element_text(size=14))
+#ggsave("/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/Final_Figs/OTU_282_After_Treatment.eps")
+
 ```
 
 
@@ -554,7 +574,7 @@ ggsave("/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/Final_Figs/OTU
 ##LACTO
 
 #75 taxa
-lactobac <- subset_taxa(bb16S_bac_ML_B, Order =="Lactobacillales")
+lactobac <- subset_taxa(bb16S_bac_ML_A, Order =="Lactobacillales")
 lactobac_glomed <- tax_glom(lactobac, taxrank = "Order")
 
 dat<-data.frame(otu_table(lactobac_glomed))
@@ -579,6 +599,8 @@ for(i in 1:length(names(data.frame(otu_table(lactobac))))){
   print(mod)
   print(names(lacto_df[i]))
 }
+
+pairwise.wilcox.test(lacto_df$OTU_568, lacto_df$Treatment)
 ```
 
 
