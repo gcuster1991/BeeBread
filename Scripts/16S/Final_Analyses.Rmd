@@ -525,6 +525,9 @@ bb16S_bac_ML_A<-subset_samples(bb16S_bac_ML, Timepoint == "A")
 acetobacter <- subset_taxa(bb16S_bac_ML_A, Family =="Acetobacteraceae")
 acetobacter_glomed<- tax_glom(acetobacter, taxrank = "Family")
 
+
+
+
 #anova for all taxa combined
 dat<-data.frame(otu_table(acetobacter_glomed))
 samp_d<-data.frame(sample_data(acetobacter_glomed))
@@ -562,9 +565,42 @@ for(i in 1:length(names(data.frame(otu_table(acetobacter))))){
 }
 
 
-pairwise.wilcox.test(aceto_df$OTU_82, aceto_df$Treatment)
-ggplot(aceto_df, aes(x = Treatment, y = OTU_82, color = Treatment)) + geom_boxplot()  + theme_classic()  + theme(axis.text = element_text(size = 14), axis.title=element_text(size=14))
+pairwise.wilcox.test(aceto_df$OTU_122, aceto_df$Treatment)
+ggplot(aceto_df, aes(x = Treatment, y = OTU_282, color = Treatment)) + geom_boxplot()  + theme_classic()  + theme(axis.text = element_text(size = 14), axis.title=element_text(size=14))
 #ggsave("/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/Final_Figs/OTU_282_After_Treatment.eps")
+
+
+
+#repeat analysis with glommed at genus level
+
+acetobacter_glomed_genus<- tax_glom(acetobacter, taxrank = "Genus")
+#anova for all taxa combined
+dat<-data.frame(otu_table(acetobacter_glomed_genus))
+samp_d<-data.frame(sample_data(acetobacter_glomed_genus))
+merged_dat<-cbind(dat, samp_d)
+#check to make sure md and otu table are in same order. All should be true. 
+table(merged_dat$X == rownames(merged_dat))
+#pull out data
+aceto_df <- cbind(data.frame(otu_table(acetobacter_glomed_genus)), data.frame(sample_data(acetobacter_glomed_genus)))
+table(aceto_df$X == rownames(aceto_df))
+
+for(i in 1:length(names(data.frame(otu_table(acetobacter_glomed_genus))))){
+  mod<-kruskal.test(unlist(aceto_df[i]) ~ aceto_df$Treatment)
+  print(mod)
+  print(names(aceto_df[i]))
+}
+
+ 
+for(i in 1:length(names(data.frame(otu_table(acetobacter_glomed_genus))))){
+ mod<-aov(unlist(aceto_df[i]) ~ aceto_df$Treatment)
+ summary(mod)
+  print(summary(mod))
+  print(names(aceto_df[i]))
+}
+
+ggplot(aceto_df, aes(x = Treatment, y = OTU_82, color = Treatment)) + geom_boxplot()  + theme_classic()  + theme(axis.text = element_text(size = 14), axis.title=element_text(size=14))
+
+tax_table(acetobacter_glomed_genus)
 
 ```
 
