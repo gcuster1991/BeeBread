@@ -565,14 +565,16 @@ for(i in 1:length(names(data.frame(otu_table(acetobacter))))){
 }
 
 
-pairwise.wilcox.test(aceto_df$OTU_122, aceto_df$Treatment)
-ggplot(aceto_df, aes(x = Treatment, y = OTU_282, color = Treatment)) + geom_boxplot()  + theme_classic()  + theme(axis.text = element_text(size = 14), axis.title=element_text(size=14))
+pairwise.wilcox.test(aceto_df$OTU_82, aceto_df$Treatment)
+ggplot(aceto_df, aes(x = Treatment, y = OTU_82, color = Treatment)) + geom_boxplot()  + theme_classic()  + theme(axis.text = element_text(size = 14), axis.title=element_text(size=14))
 #ggsave("/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/Final_Figs/OTU_282_After_Treatment.eps")
 
 
+```
 
-#repeat analysis with glommed at genus level
 
+repeat analysis with glommed at genus level
+```{r}
 acetobacter_glomed_genus<- tax_glom(acetobacter, taxrank = "Genus")
 #anova for all taxa combined
 dat<-data.frame(otu_table(acetobacter_glomed_genus))
