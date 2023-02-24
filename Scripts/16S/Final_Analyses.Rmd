@@ -225,7 +225,7 @@ adonis2(dist_uw ~  Site * Treatment * Timepoint, data= sd_adonis, permutations =
 
 #with strata argument
 adonis2(dist_w ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
-adonis2(dist_uw ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
+adonis2(dist_uw ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
 
 
 ##PW adonis w/ strata = site
@@ -265,11 +265,15 @@ dist_wb<-phyloseq::distance(bb16S_bac_ML_A, method =  "wunifrac")
 dist_uwb<-phyloseq::distance(bb16S_bac_ML_A, method =  "unifrac")
 
 
+#w/o strata
+adonis2(dist_wb ~  Site * Treatment, data= sd_adonis, permutations = 1000)
+adonis2(dist_uwb ~  Site * Treatment, data= sd_adonis, permutations = 1000)
 #with strata argument
 adonis2(dist_wb ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
 adonis2(dist_uwb ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
 
 pairwiseAdonis::pairwise.adonis2(dist_uwb ~Treatment, strata = "Site", data = sd_adonis, nperm = 1000)
+pairwiseAdonis::pairwise.adonis2(dist_wb ~Treatment, strata = "Site", data = sd_adonis, nperm = 1000)
 
 #ordinations
 #weighted Unifrac
@@ -299,10 +303,10 @@ sort(table(data.frame(tax_table(bb16S_bac_rarefy))$Family), decreasing = TRUE)
 length(unique(data.frame(tax_table(bb16S_bac_rarefy))$Family))
 
 plot_bar(subset_samples(bb16S_bac_rarefy, Timepoint == "A"), fill = "Phylum")  + scale_fill_manual(values = col_vector) + geom_bar(stat = "identity")+ coord_flip()
-#ggsave("../../Writing/Final_Figs/taxabarA.pdf")
+ggsave("../../Writing/Final_Figs/taxabarAfter_2_25_23.eps")
 
 plot_bar(subset_samples(bb16S_bac_rarefy, Timepoint == "B"), fill = "Phylum")  + scale_fill_manual(values = col_vector) + geom_bar(stat = "identity")+ coord_flip()
-#ggsave("../../Writing/Final_Figs/taxabarB.pdf")
+ggsave("../../Writing/Final_Figs/taxabarBefore_2_25_23.eps")
 
 
 ```
@@ -419,7 +423,7 @@ ggsave("../../Writing/Final_Figs/CoreGenus_Unweighted_Unifrac_NMDS.eps")
 ```
 
 
-Core genus at time point 2 
+Core genus at time points 1 and 2 
 ```{r}
 core_genus_A <- subset_samples(core_genus, Timepoint == "A")
 
@@ -430,6 +434,22 @@ sd_adonis$Treatment <-as.factor(sd_adonis$Treatment)
 sd_adonis$Site <-as.factor(sd_adonis$Site)
 dist_core_w_genus<-phyloseq::distance(core_genus_A, method =  "wunifrac")
 dist_core_uw_genus<-phyloseq::distance(core_genus_A, method =  "unifrac")
+
+#weighted unifrac
+adonis2(dist_core_w_genus ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
+#unweighted unifrac
+adonis2(dist_core_uw_genus ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
+
+
+core_genus_B <- subset_samples(core_genus, Timepoint == "B")
+
+#core asv adonis
+tab_adonis<-data.frame(otu_table(core_genus_B))
+sd_adonis<-data.frame(sample_data(core_genus_B))
+sd_adonis$Treatment <-as.factor(sd_adonis$Treatment)
+sd_adonis$Site <-as.factor(sd_adonis$Site)
+dist_core_w_genus<-phyloseq::distance(core_genus_B, method =  "wunifrac")
+dist_core_uw_genus<-phyloseq::distance(core_genus_B, method =  "unifrac")
 
 #weighted unifrac
 adonis2(dist_core_w_genus ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
@@ -529,8 +549,6 @@ acetobacter <- subset_taxa(bb16S_bac_ML_A, Family =="Acetobacteraceae")
 acetobacter_glomed<- tax_glom(acetobacter, taxrank = "Family")
 
 
-
-
 #anova for all taxa combined
 dat<-data.frame(otu_table(acetobacter_glomed))
 samp_d<-data.frame(sample_data(acetobacter_glomed))
@@ -568,8 +586,12 @@ for(i in 1:length(names(data.frame(otu_table(acetobacter))))){
 }
 
 
-pairwise.wilcox.test(aceto_df$OTU_82, aceto_df$Treatment)
-ggplot(aceto_df, aes(x = Treatment, y = OTU_82, color = Treatment)) + geom_boxplot()  + theme_classic()  + theme(axis.text = element_text(size = 14), axis.title=element_text(size=14))
+pairwise.wilcox.test(aceto_df$OTU_122, aceto_df$Treatment)
+ggplot(aceto_df, aes(x = Treatment, y = OTU_122, color = Treatment)) + geom_boxplot()  + theme_classic()  + theme(axis.text = element_text(size = 14), axis.title=element_text(size=14))
+
+pairwise.wilcox.test(aceto_df$OTU_282, aceto_df$Treatment)
+ggplot(aceto_df, aes(x = Treatment, y = OTU_282, color = Treatment)) + geom_boxplot()  + theme_classic()  + theme(axis.text = element_text(size = 14), axis.title=element_text(size=14))
+
 #ggsave("/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/Final_Figs/OTU_282_After_Treatment.eps")
 
 
