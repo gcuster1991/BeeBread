@@ -88,7 +88,7 @@ ps_wo_control<-subset_samples(bb16S_bac, Treatment != "none")
 
 Examine rarefaction curves. Plateau in most samples under the 1.5k read mark.
 
-```{r}
+```{#r}
 vegan::rarecurve(data.frame(otu_table(ps_wo_control)), step=50, cex=0.5, main = "Rarefaction Curve", ylab="Richness", xlab="Read Depth")
 ```
 
@@ -221,11 +221,9 @@ adonis2(dist_w ~  Site * Treatment * Timepoint, data= sd_adonis, permutations = 
 #unweighted
 adonis2(dist_uw ~  Site * Treatment * Timepoint, data= sd_adonis, permutations = 1000)
 
-
-
 #with strata argument
 adonis2(dist_w ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
-adonis2(dist_uw ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 10000)
+adonis2(dist_uw ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
 
 
 ##PW adonis w/ strata = site
@@ -266,6 +264,7 @@ dist_uwb<-phyloseq::distance(bb16S_bac_ML_A, method =  "unifrac")
 
 
 #w/o strata
+#table S4
 adonis2(dist_wb ~  Site * Treatment, data= sd_adonis, permutations = 1000)
 adonis2(dist_uwb ~  Site * Treatment, data= sd_adonis, permutations = 1000)
 #with strata argument
@@ -666,7 +665,31 @@ for(i in 1:length(names(data.frame(otu_table(lactobac))))){
 pairwise.wilcox.test(lacto_df$OTU_568, lacto_df$Treatment)
 ```
 
+calculate mean abundance of dominant groups
+```{r}
+phy_ps <- tax_glom(bb16S_bac_rarefy, taxrank = "Phylum")
+#phylum counts
+table(data.frame(tax_table(bb16S_bac_rarefy))$Phylum)
+phy_ps<- transform_sample_counts(phy_ps, function(x) x / sum(x))
+phylum_df<-data.frame(otu_table(phy_ps))
+rownames(tax_table(phy_ps)) == names(phylum_df)
+names(phylum_df) <- tax_table(phy_ps)[,2]
+apply(phylum_df, 2, mean)
+apply(phylum_df, 2, sd)
 
+
+
+order_ps <- tax_glom(bb16S_bac_rarefy, taxrank = "Order")
+#phylum counts
+sort(table(data.frame(tax_table(bb16S_bac_rarefy))$Order))
+order_ps<- transform_sample_counts(order_ps, function(x) x / sum(x))
+order_df<-data.frame(otu_table(order_ps))
+rownames(tax_table(order_ps)) == names(order_df)
+names(order_df) <- tax_table(order_ps)[,4]
+apply(order_df, 2, mean)
+apply(order_df, 2, sd)
+
+```
 
 
 https://stackoverflow.com/questions/61796484/stacked-bar-chart-with-count-above-and-below-x-axis
