@@ -23,6 +23,7 @@ require(phangorn)
   require(gridExtra)
 require(pairwiseAdonis)
   require(car)
+require(phyloseq)
 ```
 
 Load necessary files from Dada2 processing script.
@@ -87,8 +88,8 @@ ps_wo_control<-subset_samples(bb16S_bac, Treatment != "none")
 
 Examine rarefaction curves. Plateau in most samples under the 1.5k read mark.
 
-```{r}
-rarecurve(otu_table(ps_wo_control), step=50, cex=0.5, main = "Rarefaction Curve", ylab="Richness", xlab="Read Depth")
+```{#r}
+vegan::rarecurve(data.frame(otu_table(ps_wo_control)), step=50, cex=0.5, main = "Rarefaction Curve", ylab="Richness", xlab="Read Depth")
 ```
 
 ```{r}
@@ -214,12 +215,11 @@ dist_uw<-phyloseq::distance(bb16S_bac_ML, method =  "unifrac")
 
 #full model with no strata arguemnt. Essentially the effect of each main effect without controlling for any potential groups. 
 
+#Table S2
 #weighted
 adonis2(dist_w ~  Site * Treatment * Timepoint, data= sd_adonis, permutations = 1000)
 #unweighted
 adonis2(dist_uw ~  Site * Treatment * Timepoint, data= sd_adonis, permutations = 1000)
-pairwise.adonis2(dist_uw ~ Treatment + Timepoint, strata = "Site",  data= sd_adonis, nperm = 1000)
-
 
 #with strata argument
 adonis2(dist_w ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
@@ -227,9 +227,10 @@ adonis2(dist_uw ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_ad
 
 
 ##PW adonis w/ strata = site
-pairwise.adonis2(dist_uw ~ Treatment + Timepoint, strata = "Site",  data= sd_adonis, nperm = 10000)
-pairwise.adonis2(dist_w ~ Treatment + Timepoint, strata = "Site",  data= sd_adonis, nperm = 10000)
+pairwiseAdonis::pairwise.adonis2(dist_uw ~ Treatment + Timepoint, strata = "Site",  data= sd_adonis, nperm = 1000)
+pairwiseAdonis::pairwise.adonis2(dist_w ~ Treatment + Timepoint, strata = "Site",  data= sd_adonis, nperm = 1000)
 ```
+
 Ordinations
 ```{r}
 #weighted Unifrac
@@ -262,11 +263,16 @@ dist_wb<-phyloseq::distance(bb16S_bac_ML_A, method =  "wunifrac")
 dist_uwb<-phyloseq::distance(bb16S_bac_ML_A, method =  "unifrac")
 
 
+#w/o strata
+#table S4
+adonis2(dist_wb ~  Site * Treatment, data= sd_adonis, permutations = 1000)
+adonis2(dist_uwb ~  Site * Treatment, data= sd_adonis, permutations = 1000)
 #with strata argument
 adonis2(dist_wb ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
 adonis2(dist_uwb ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
 
-pairwise.adonis2(dist_uwb ~Treatment, strata = "Site", data = sd_adonis, nperm = 1000)
+pairwiseAdonis::pairwise.adonis2(dist_uwb ~Treatment, strata = "Site", data = sd_adonis, nperm = 1000)
+pairwiseAdonis::pairwise.adonis2(dist_wb ~Treatment, strata = "Site", data = sd_adonis, nperm = 1000)
 
 #ordinations
 #weighted Unifrac
@@ -296,10 +302,10 @@ sort(table(data.frame(tax_table(bb16S_bac_rarefy))$Family), decreasing = TRUE)
 length(unique(data.frame(tax_table(bb16S_bac_rarefy))$Family))
 
 plot_bar(subset_samples(bb16S_bac_rarefy, Timepoint == "A"), fill = "Phylum")  + scale_fill_manual(values = col_vector) + geom_bar(stat = "identity")+ coord_flip()
-#ggsave("../../Writing/Final_Figs/taxabarA.pdf")
+ggsave("../../Writing/Final_Figs/taxabarAfter_2_25_23.eps")
 
 plot_bar(subset_samples(bb16S_bac_rarefy, Timepoint == "B"), fill = "Phylum")  + scale_fill_manual(values = col_vector) + geom_bar(stat = "identity")+ coord_flip()
-#ggsave("../../Writing/Final_Figs/taxabarB.pdf")
+ggsave("../../Writing/Final_Figs/taxabarBefore_2_25_23.eps")
 
 
 ```
@@ -422,7 +428,7 @@ ggsave("../../Writing/Final_Figs/CoreGenus_Unweighted_Unifrac_NMDS.eps")
 ```
 
 
-Core genus at time point 2 
+Core genus at time points 1 and 2 
 ```{r}
 core_genus_A <- subset_samples(core_genus, Timepoint == "A")
 
@@ -433,6 +439,22 @@ sd_adonis$Treatment <-as.factor(sd_adonis$Treatment)
 sd_adonis$Site <-as.factor(sd_adonis$Site)
 dist_core_w_genus<-phyloseq::distance(core_genus_A, method =  "wunifrac")
 dist_core_uw_genus<-phyloseq::distance(core_genus_A, method =  "unifrac")
+
+#weighted unifrac
+adonis2(dist_core_w_genus ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
+#unweighted unifrac
+adonis2(dist_core_uw_genus ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
+
+
+core_genus_B <- subset_samples(core_genus, Timepoint == "B")
+
+#core asv adonis
+tab_adonis<-data.frame(otu_table(core_genus_B))
+sd_adonis<-data.frame(sample_data(core_genus_B))
+sd_adonis$Treatment <-as.factor(sd_adonis$Treatment)
+sd_adonis$Site <-as.factor(sd_adonis$Site)
+dist_core_w_genus<-phyloseq::distance(core_genus_B, method =  "wunifrac")
+dist_core_uw_genus<-phyloseq::distance(core_genus_B, method =  "unifrac")
 
 #weighted unifrac
 adonis2(dist_core_w_genus ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
@@ -532,8 +554,6 @@ acetobacter <- subset_taxa(bb16S_bac_ML_A, Family =="Acetobacteraceae")
 acetobacter_glomed<- tax_glom(acetobacter, taxrank = "Family")
 
 
-
-
 #anova for all taxa combined
 dat<-data.frame(otu_table(acetobacter_glomed))
 samp_d<-data.frame(sample_data(acetobacter_glomed))
@@ -571,8 +591,12 @@ for(i in 1:length(names(data.frame(otu_table(acetobacter))))){
 }
 
 
-pairwise.wilcox.test(aceto_df$OTU_82, aceto_df$Treatment)
-ggplot(aceto_df, aes(x = Treatment, y = OTU_82, color = Treatment)) + geom_boxplot()  + theme_classic()  + theme(axis.text = element_text(size = 14), axis.title=element_text(size=14))
+pairwise.wilcox.test(aceto_df$OTU_122, aceto_df$Treatment)
+ggplot(aceto_df, aes(x = Treatment, y = OTU_122, color = Treatment)) + geom_boxplot()  + theme_classic()  + theme(axis.text = element_text(size = 14), axis.title=element_text(size=14))
+
+pairwise.wilcox.test(aceto_df$OTU_282, aceto_df$Treatment)
+ggplot(aceto_df, aes(x = Treatment, y = OTU_282, color = Treatment)) + geom_boxplot()  + theme_classic()  + theme(axis.text = element_text(size = 14), axis.title=element_text(size=14))
+
 #ggsave("/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/Final_Figs/OTU_282_After_Treatment.eps")
 
 
@@ -647,7 +671,31 @@ for(i in 1:length(names(data.frame(otu_table(lactobac))))){
 pairwise.wilcox.test(lacto_df$OTU_568, lacto_df$Treatment)
 ```
 
+calculate mean abundance of dominant groups
+```{r}
+phy_ps <- tax_glom(bb16S_bac_rarefy, taxrank = "Phylum")
+#phylum counts
+table(data.frame(tax_table(bb16S_bac_rarefy))$Phylum)
+phy_ps<- transform_sample_counts(phy_ps, function(x) x / sum(x))
+phylum_df<-data.frame(otu_table(phy_ps))
+rownames(tax_table(phy_ps)) == names(phylum_df)
+names(phylum_df) <- tax_table(phy_ps)[,2]
+apply(phylum_df, 2, mean)
+apply(phylum_df, 2, sd)
 
+
+
+order_ps <- tax_glom(bb16S_bac_rarefy, taxrank = "Order")
+#phylum counts
+sort(table(data.frame(tax_table(bb16S_bac_rarefy))$Order))
+order_ps<- transform_sample_counts(order_ps, function(x) x / sum(x))
+order_df<-data.frame(otu_table(order_ps))
+rownames(tax_table(order_ps)) == names(order_df)
+names(order_df) <- tax_table(order_ps)[,4]
+apply(order_df, 2, mean)
+apply(order_df, 2, sd)
+
+```
 
 
 https://stackoverflow.com/questions/61796484/stacked-bar-chart-with-count-above-and-below-x-axis
