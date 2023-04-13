@@ -360,6 +360,10 @@ otu_genus_core <- data.frame(otu_table(core_genus))
 tax_genus_core <- data.frame(tax_table(core_genus))
 samp_data_genus_core <- data.frame(sample_data(core_genus))
 
+percent_abund<-(otu_genus_core[,]/1100)
+
+write.csv(percent_abund, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/core_genera_percent_abund.csv")
+
 #write.csv(otu_genus_core, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/otu_genus_core.csv")
 #write.csv(tax_genus_core, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/tax_genus_core.csv")
 #write.csv(samp_data_genus_core, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/samp_data_genus_core.csv")
@@ -371,6 +375,8 @@ table(data.frame(tax_table(core_genus))$Genus)
 14/325
 #percent of reads accounted for by the core genera
 sum(sample_sums(core_genus))/sum(sample_sums(bb16S_bac_rarefy))
+
+
 
 #extract sequence of core genera and export for tree building 
 core_genus_names<-rownames(tax_table(core_genus))
