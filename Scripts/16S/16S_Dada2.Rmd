@@ -212,7 +212,7 @@ Assign taxonomy with the silva species level database.
 taxa <- assignTaxonomy(seqtab.nochim, "/Volumes/GoogleDrive/My Drive/databases/silva_nr99_v138.1_wSpecies_train_set.fa.gz", multithread=TRUE)
 #taxa <- assignTaxonomy(seqtab.nochim, "/Users/gordoncuster/Desktop/silva_nr99_v138.1_train_set.fa.gz", multithread=TRUE)
 #taxa <- addSpecies(taxa, "/Users/gordoncuster/Desktop/silva_species_assignment_v138.1.fa.gz")
-
+taxaBeeDB <- assignTaxonomy(seqtab.nochim, "/Users/gordoncuster/Desktop/BEEx_v2023.01.30___dada2_v4.fasta.gz", multithread=TRUE)
 ```
 
 ```{r}
