@@ -26,6 +26,9 @@ require(pairwiseAdonis)
 require(phyloseq)
   require(microbiome)
 require(EcolUtils)
+  require(lme4)
+require(lmerTest)
+  require(DESeq2)
 ```
 
 Load necessary files from Dada2 processing script.
@@ -127,6 +130,31 @@ View(otu_table(ps_wo_control)[1:10, 1:10])
 View(otu_table(bb16S_bac_rarefy_iter)[1:10, 1:10])
 ```
 
+#Calculate mean abundance of dominant groups
+```{r}
+phy_ps <- tax_glom(bb16S_bac_rarefy_iter, taxrank = "Phylum")
+#phylum counts
+table(data.frame(tax_table(bb16S_bac_rarefy_iter))$Phylum)
+phy_ps<- transform_sample_counts(phy_ps, function(x) x / sum(x))
+phylum_df<-data.frame(otu_table(phy_ps))
+rownames(tax_table(phy_ps)) == names(phylum_df)
+names(phylum_df) <- tax_table(phy_ps)[,2]
+apply(phylum_df, 2, mean)
+apply(phylum_df, 2, sd)
+
+
+
+order_ps <- tax_glom(bb16S_bac_rarefy_iter, taxrank = "Order")
+#phylum counts
+sort(table(data.frame(tax_table(bb16S_bac_rarefy_iter))$Order))
+order_ps<- transform_sample_counts(order_ps, function(x) x / sum(x))
+order_df<-data.frame(otu_table(order_ps))
+rownames(tax_table(order_ps)) == names(order_df)
+names(order_df) <- tax_table(order_ps)[,4]
+apply(order_df, 2, mean)
+apply(order_df, 2, sd)
+```
+
 #Alpha Diversity
 ```{r}
 sf2a <- plot_richness(bb16S_bac_rarefy_iter, x = "Site", measures = c("Shannon", "Observed", "Chao1"), color = "Site") + geom_boxplot() + ggtitle("Sampling Location") + theme_classic()  + xlab("Sampling Location")  + theme(axis.text=element_text(size=12, angle = 45, hjust = 0.75),
@@ -183,13 +211,24 @@ plot(TukeyHSD(mod, "Site"), las=1, cex.axis = 0.4)
 #Several significant pairwise differences to accompany the significant global test for interaction term. We can
 TukeyHSD(mod, "Site:Timepoint")
 plot(TukeyHSD(mod, "Site:Timepoint"), las=1, cex.axis = 0.4)
+
+
+#mixed effect model with site as a random effect
+#Lme4
+mod<-lmer(Shannon ~ Treatment * Timepoint + (1|Site), data = richness_BB16S_bac, REML = T)
+anova(mod)
+lmerTest::rand(mod)
+
+shapiro.test(resid(mod))
+qqnorm(resid(mod))
+hist(resid(mod))
 ```
 
 Tests of Chao 1
 ```{r}
 #ANOVA and Tukey's PW comparisons
 #Run a full 3 way ANOVA with interactions
-mod<-aov(Chao1 ~ Site * Treatment * Timepoint, data = richness_BB16S_bac)
+mod<-aov(Chao1 ~ Treatment * Timepoint, data = richness_BB16S_bac)
 #residuals look fine. 
 shapiro.test(mod$residuals)
 hist(mod$residuals)
@@ -203,12 +242,20 @@ leveneTest(Chao1 ~ Timepoint, data = richness_BB16S_bac)
 
 TukeyHSD(mod, "Site")
 plot(TukeyHSD(mod, "Site"), las=1, cex.axis = 0.4)
+
+mod<-lmer(Chao1 ~ Treatment * Timepoint + (1|Site), data = richness_BB16S_bac, REML = T)
+anova(mod)
+lmerTest::rand(mod)
+
+shapiro.test(resid(mod))
+qqnorm(resid(mod))
+hist(resid(mod))
 ```
 Tests of Observed - unique taxa in a sample. 
 ```{r}
 #ANOVA and Tukey's PW comparisons
 #Run a full 3 way ANOVA with interactions
-mod<-aov(Observed ~ Site * Treatment * Timepoint, data = richness_BB16S_bac)
+mod<-aov(Observed ~  Treatment * Timepoint, data = richness_BB16S_bac)
 #residuals look fine. 
 shapiro.test(mod$residuals)
 summary(mod)
@@ -221,6 +268,14 @@ leveneTest(Observed ~ Timepoint, data = richness_BB16S_bac)
 #Summary of model shows site and timepoint to be a significant predictor as well as the site interaction terms.
 TukeyHSD(mod, "Site")
 plot(TukeyHSD(mod, "Site"), las=1, cex.axis = 0.4)
+
+mod<-lmer(Observed ~ Treatment * Timepoint + (1|Site), data = richness_BB16S_bac, REML = T)
+anova(mod)
+lmerTest::rand(mod)
+
+shapiro.test(resid(mod))
+qqnorm(resid(mod))
+hist(resid(mod))
 ```
 
 #Beta diversity
@@ -235,11 +290,11 @@ dist_uw<-phyloseq::distance(bb16S_bac_rarefy_iter, method =  "unifrac")
 
 #full model with no strata arguemnt. Essentially the effect of each main effect without controlling for any potential groups. 
 
-#Table S2
+#Table S3
 #weighted
-adonis2(dist_w ~  Treatment * Timepoint, data= sd_adonis, permutations = 1000)
+#adonis2(dist_w ~  Treatment * Timepoint, data= sd_adonis, permutations = 1000)
 #unweighted
-adonis2(dist_uw ~  Treatment * Timepoint, data= sd_adonis, permutations = 1000)
+#adonis2(dist_uw ~  Treatment * Timepoint, data= sd_adonis, permutations = 1000)
 
 #with strata argument
 adonis2(dist_w ~  Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
@@ -247,8 +302,9 @@ adonis2(dist_uw ~  Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Si
 
 
 ##PW adonis w/ strata = site
-pairwiseAdonis::pairwise.adonis2(dist_uw ~ Treatment + Timepoint, strata = "Site",  data= sd_adonis, nperm = 1000)
 pairwiseAdonis::pairwise.adonis2(dist_w ~ Treatment + Timepoint, strata = "Site",  data= sd_adonis, nperm = 1000)
+pairwiseAdonis::pairwise.adonis2(dist_uw ~ Treatment + Timepoint, strata = "Site",  data= sd_adonis, nperm = 1000)
+
 ```
 
 Ordinations
@@ -256,15 +312,15 @@ Ordinations
 #weighted Unifrac
 ord_nmds<-ordinate(physeq = bb16S_bac_rarefy_iter, method = "NMDS", distance = "wunifrac")
 ord_nmds$stress
-plot_ordination(physeq = bb16S_bac_ML, ordination = ord_nmds, type = "Samples", color = "Site", shape = "Treatment" ) + theme_classic() + ggtitle("Weighted Unifrac NMDS") + theme(plot.title = element_text(hjust = 0.5, size = 18)) + geom_point(size = 3) + theme(axis.text = element_text(size = 14), axis.title=element_text(size=14))
-#ggsave("../../Writing/Final_Figs/Weighted_Unifrac_NMDS.eps")
+plot_ordination(physeq = bb16S_bac_rarefy_iter, ordination = ord_nmds, type = "Samples", color = "Site", shape = "Treatment" ) + theme_classic() + ggtitle("Weighted Unifrac NMDS") + theme(plot.title = element_text(hjust = 0.5, size = 18)) + geom_point(size = 3) + theme(axis.text = element_text(size = 14), axis.title=element_text(size=14))
+ggsave("../../Writing/Final_Figs/December2023/Weighted_Unifrac_NMDS.eps")
 #strongest grouping by Site. Time point also has a smaller effect, but these groupings are more clear than in the CAP ordination. There are several outlier samples that ordinate far to the right on the NMDS1 axis. 
 
 #unweighted Unifrac
-ord_nmds<-ordinate(physeq = bb16S_bac_ML, method = "NMDS", distance = "unifrac")
+ord_nmds<-ordinate(physeq = bb16S_bac_rarefy_iter, method = "NMDS", distance = "unifrac")
 ord_nmds$stress
-plot_ordination(physeq = bb16S_bac_ML, ordination = ord_nmds, type = "Samples", color = "Site", shape = "Treatment" ) + theme_classic() + ggtitle("Unweighted Unifrac NMDS") + theme(plot.title = element_text(hjust = 0.5, size = 18)) + geom_point(size = 3) + theme(axis.text = element_text(size = 14), axis.title=element_text(size=14))
-#ggsave("../../Writing/Final_Figs/Unweighted_Unifrac_NMDS.eps")
+plot_ordination(physeq = bb16S_bac_rarefy_iter, ordination = ord_nmds, type = "Samples", color = "Site", shape = "Treatment" ) + theme_classic() + ggtitle("Unweighted Unifrac NMDS") + theme(plot.title = element_text(hjust = 0.5, size = 18)) + geom_point(size = 3) + theme(axis.text = element_text(size = 14), axis.title=element_text(size=14))
+ggsave("../../Writing/Final_Figs/December2023/Unweighted_Unifrac_NMDS.eps")
 
 
 ```
@@ -273,66 +329,43 @@ plot_ordination(physeq = bb16S_bac_ML, ordination = ord_nmds, type = "Samples", 
 Sampling time 2 (post treatment)
 ```{r}
 #post-treatment samples
-bb16S_bac_ML_A<-subset_samples(bb16S_bac_ML, Timepoint == "A")
+bb16S_bac_iter_A<-subset_samples(bb16S_bac_rarefy_iter, Timepoint == "A")
 
 #extract data from phyloseq object for post-treatment
-sd_adonis<-data.frame(sample_data(bb16S_bac_ML_A))
+sd_adonis<-data.frame(sample_data(bb16S_bac_iter_A))
 sd_adonis$Treatment <-as.factor(sd_adonis$Treatment)
-sd_adonis$Site <-as.factor(sd_adonis$Site)
-dist_wb<-phyloseq::distance(bb16S_bac_ML_A, method =  "wunifrac")
-dist_uwb<-phyloseq::distance(bb16S_bac_ML_A, method =  "unifrac")
+#sd_adonis$Site <-as.factor(sd_adonis$Site)
+dist_wb<-phyloseq::distance(bb16S_bac_iter_A, method =  "wunifrac")
+dist_uwb<-phyloseq::distance(bb16S_bac_iter_A, method =  "unifrac")
 
 
 #w/o strata
 #table S4
-adonis2(dist_wb ~  Site * Treatment, data= sd_adonis, permutations = 1000)
-adonis2(dist_uwb ~  Site * Treatment, data= sd_adonis, permutations = 1000)
+#adonis2(dist_wb ~  Site * Treatment, data= sd_adonis, permutations = 1000)
+#adonis2(dist_uwb ~  Site * Treatment, data= sd_adonis, permutations = 1000)
 #with strata argument
-adonis2(dist_wb ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
-adonis2(dist_uwb ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
+adonis2(dist_wb ~ Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
+adonis2(dist_uwb ~ Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
 
-pairwiseAdonis::pairwise.adonis2(dist_uwb ~Treatment, strata = "Site", data = sd_adonis, nperm = 1000)
 pairwiseAdonis::pairwise.adonis2(dist_wb ~Treatment, strata = "Site", data = sd_adonis, nperm = 1000)
+pairwiseAdonis::pairwise.adonis2(dist_uwb ~Treatment, strata = "Site", data = sd_adonis, nperm = 1000)
+
 
 #ordinations
 #weighted Unifrac
-ord_nmds<-ordinate(physeq = bb16S_bac_ML_A, method = "NMDS", distance = "wunifrac")
+ord_nmds<-ordinate(physeq = bb16S_bac_iter_A, method = "NMDS", distance = "wunifrac")
 ord_nmds$stress
-plot_ordination(physeq = bb16S_bac_ML_A, ordination = ord_nmds, type = "Samples", color = "Site", shape = "Treatment" ) + theme_classic() + ggtitle("Weighted Unifrac NMDS") + theme(plot.title = element_text(hjust = 0.5, size = 18)) + geom_point(size = 3)
-#ggsave("../../Writing/Final_Figs/Time2_Weighted_Unifrac_NMDS.pdf")
+plot_ordination(physeq = bb16S_bac_iter_A, ordination = ord_nmds, type = "Samples", color = "Site", shape = "Treatment" ) + theme_classic() + ggtitle("Weighted Unifrac NMDS") + theme(plot.title = element_text(hjust = 0.5, size = 18)) + geom_point(size = 3)
+ggsave("../../Writing/Final_Figs/December2023/Time2_Weighted_Unifrac_NMDS.pdf")
 
 
 #unweighted Unifrac
-ord_nmds<-ordinate(physeq = bb16S_bac_ML_A, method = "NMDS", distance = "unifrac")
+ord_nmds<-ordinate(physeq = bb16S_bac_iter_A, method = "NMDS", distance = "unifrac")
 ord_nmds$stress
-plot_ordination(physeq = bb16S_bac_ML_A, ordination = ord_nmds, type = "Samples", color = "Site", shape = "Treatment" ) + theme_classic() + ggtitle("Unweighted Unifrac NMDS") + theme(plot.title = element_text(hjust = 0.5, size = 18)) + geom_point(size = 3)
-#ggsave("../../Writing/Final_Figs/Time2_Unweighted_Unifrac_NMDS.pdf")
+plot_ordination(physeq = bb16S_bac_iter_A, ordination = ord_nmds, type = "Samples", color = "Site", shape = "Treatment" ) + theme_classic() + ggtitle("Unweighted Unifrac NMDS") + theme(plot.title = element_text(hjust = 0.5, size = 18)) + geom_point(size = 3)
+ggsave("../../Writing/Final_Figs/December2023/Time2_Unweighted_Unifrac_NMDS.pdf")
 
 ```
-
-create taxa bar plot to display makeup
-```{r}
-sort(table(data.frame(tax_table(bb16S_bac_rarefy))$Phylum), decreasing = TRUE)
-length(unique(data.frame(tax_table(bb16S_bac_rarefy))$Phylum))
-
-sort(table(data.frame(tax_table(bb16S_bac_rarefy))$Order), decreasing = TRUE)
-length(unique(data.frame(tax_table(bb16S_bac_rarefy))$Order))
-
-sort(table(data.frame(tax_table(bb16S_bac_rarefy))$Family), decreasing = TRUE)
-length(unique(data.frame(tax_table(bb16S_bac_rarefy))$Family))
-
-plot_bar(subset_samples(bb16S_bac_rarefy, Timepoint == "A"), fill = "Phylum")  + scale_fill_manual(values = col_vector) + geom_bar(stat = "identity")+ coord_flip()
-ggsave("../../Writing/Final_Figs/taxabarAfter_2_25_23.eps")
-
-plot_bar(subset_samples(bb16S_bac_rarefy, Timepoint == "B"), fill = "Phylum")  + scale_fill_manual(values = col_vector) + geom_bar(stat = "identity")+ coord_flip()
-ggsave("../../Writing/Final_Figs/taxabarBefore_2_25_23.eps")
-
-
-```
-
-
-#Core analysis
-
 ```{r}
 #create super long color vector
 col_vector <- c("#000000", "#FFFF00", "#1CE6FF", "#FF34FF", "#FF4A46", "#008941", "#006FA6", "#A30059",
@@ -373,204 +406,36 @@ col_vector <- c("#000000", "#FFFF00", "#1CE6FF", "#FF34FF", "#FF4A46", "#008941"
         "#252F99", "#00CCFF", "#674E60", "#FC009C", "#92896B")
 ```
 
-calculate core at genus and asv level using rarefied data
+create taxa bar plot to display makeup
 ```{r}
-#calculate core at genus level
-#325 genera
-bb16S_bac_rarefy_tax_genus<-tax_glom(physeq = bb16S_bac_rarefy, taxrank = "Genus", NArm = F)
-#calculate core
-core_genus<-taxa_core(phyloseq_obj = bb16S_bac_rarefy_tax_genus, treatment = "Site", frequency = 1, abundance_threshold = 0.0001)
-core_genus<-taxa_core(phyloseq_obj = core_genus, frequency = 0.5, abundance_threshold = 0.0001)
+sort(table(data.frame(tax_table(bb16S_bac_rarefy_iter))$Phylum), decreasing = TRUE)
+length(unique(data.frame(tax_table(bb16S_bac_rarefy_iter))$Phylum))
 
-otu_genus_core <- data.frame(otu_table(core_genus))
-tax_genus_core <- data.frame(tax_table(core_genus))
-samp_data_genus_core <- data.frame(sample_data(core_genus))
+sort(table(data.frame(tax_table(bb16S_bac_rarefy_iter))$Order), decreasing = TRUE)
+length(unique(data.frame(tax_table(bb16S_bac_rarefy_iter))$Order))
 
-percent_abund<-(otu_genus_core[,]/1100)
+sort(table(data.frame(tax_table(bb16S_bac_rarefy_iter))$Family), decreasing = TRUE)
+length(unique(data.frame(tax_table(bb16S_bac_rarefy_iter))$Family))
 
-write.csv(percent_abund, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/core_genera_percent_abund.csv")
+plot_bar(subset_samples(bb16S_bac_rarefy_iter, Timepoint == "A"), fill = "Phylum")  + scale_fill_manual(values = col_vector) + geom_bar(stat = "identity")+ coord_flip() + guides(fill=guide_legend(ncol=2))
+ggsave("../../Writing/Final_Figs/December2023/taxabarAfter_12_25_23.eps")
+ggsave("../../Writing/Final_Figs/December2023/taxabarAfter_12_25_23.pdf")
+ggsave("../../Writing/Final_Figs/December2023/taxabarAfter_12_25_23.jpeg")
 
-#write.csv(otu_genus_core, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/otu_genus_core.csv")
-#write.csv(tax_genus_core, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/tax_genus_core.csv")
-#write.csv(samp_data_genus_core, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/samp_data_genus_core.csv")
-
-#table taxonomic info of core genera
-table(data.frame(tax_table(core_genus))$Order)
-table(data.frame(tax_table(core_genus))$Genus)
-#percent of genera assigned to core
-14/325
-#percent of reads accounted for by the core genera
-sum(sample_sums(core_genus))/sum(sample_sums(bb16S_bac_rarefy))
-
-
-
-#extract sequence of core genera and export for tree building 
-core_genus_names<-rownames(tax_table(core_genus))
-core_genera_rep_seq<-seq_df_w_OTUID[seq_df_w_OTUID$OTUID %in% str_split(core_genus_names, pattern = "_", 2, simplify = T)[,2],] 
-taxa_df<-data.frame(taxa)
-core_genera_tax <- taxa_df[rownames(taxa_df) %in% core_genera_rep_seq$Sequence,]
-core_genera_tax$Sequence <- rownames(core_genera_tax)
-merged_tax_core_genera_rep_seq<-full_join(core_genera_tax, core_genera_rep_seq)
-
-#write.csv(merged_tax_core_genera_rep_seq, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/Core_genera_taxa_rep_seq.csv")
-#write.csv(core_genera_rep_seq, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/Core_Genera_Rep_Seqs.csv")
-#write.csv(core_genera_tax, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/Core_Genera_tax.csv")
+plot_bar(subset_samples(bb16S_bac_rarefy_iter, Timepoint == "B"), fill = "Phylum")  + scale_fill_manual(values = col_vector) + geom_bar(stat = "identity")+ coord_flip() + guides(fill=guide_legend(ncol=2))
+ggsave("../../Writing/Final_Figs/December2023/taxabarBefore_12_25_23.eps")
+ggsave("../../Writing/Final_Figs/December2023/taxabarBefore_12_25_23.pdf")
+ggsave("../../Writing/Final_Figs/December2023/taxabarBefore_12_25_23.jpeg")
 ```
-
-Core Genus
-```{r}
-#core asv adonis
-tab_adonis<-data.frame(otu_table(core_genus))
-sd_adonis<-data.frame(sample_data(core_genus))
-sd_adonis$Treatment <-as.factor(sd_adonis$Treatment)
-sd_adonis$Site <-as.factor(sd_adonis$Site)
-dist_core_w_genus<-phyloseq::distance(core_genus, method =  "wunifrac")
-dist_core_uw_genus<-phyloseq::distance(core_genus, method =  "unifrac")
-
-#weighted unifrac
-adonis2(dist_core_w_genus ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
-#unweighted unifrac
-adonis2(dist_core_uw_genus ~  Site * Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
-
-#ordinations
-#weighted Unifrac
-ord_nmds<-ordinate(physeq = core_genus, method = "NMDS", distance = "wunifrac")
-ord_nmds$stress
-plot_ordination(physeq = core_genus, ordination = ord_nmds, type = "Samples", color = "Site", shape = "Treatment" ) + theme_classic() + ggtitle("Core Genera Weighted Unifrac NMDS") + theme(plot.title = element_text(hjust = 0.5, size = 18)) + geom_point(size = 3)  + theme(axis.text = element_text(size = 14), axis.title=element_text(size=14))
-ggsave("../../Writing/Final_Figs/CoreGenus_Weighted_Unifrac_NMDS.eps")
-#strongest grouping by Site. Time point also has a smaller effect, but these groupings are more clear than in the CAP ordination. There are several outlier samples that ordinate far to the right on the NMDS1 axis. 
-
-#unweighted Unifrac
-ord_nmds<-ordinate(physeq = core_genus, method = "NMDS", distance = "unifrac")
-ord_nmds$stress
-plot_ordination(physeq = core_genus, ordination = ord_nmds, type = "Samples", color = "Site", shape = "Treatment" ) + theme_classic() + ggtitle("Core Genera Unweighted Unifrac NMDS") + theme(plot.title = element_text(hjust = 0.5, size = 18)) + geom_point(size = 3) + theme(axis.text = element_text(size = 14), axis.title=element_text(size=14))
-ggsave("../../Writing/Final_Figs/CoreGenus_Unweighted_Unifrac_NMDS.eps")
-```
-
-
-Core genus at time points 1 and 2 
-```{r}
-core_genus_A <- subset_samples(core_genus, Timepoint == "A")
-
-#core asv adonis
-tab_adonis<-data.frame(otu_table(core_genus_A))
-sd_adonis<-data.frame(sample_data(core_genus_A))
-sd_adonis$Treatment <-as.factor(sd_adonis$Treatment)
-sd_adonis$Site <-as.factor(sd_adonis$Site)
-dist_core_w_genus<-phyloseq::distance(core_genus_A, method =  "wunifrac")
-dist_core_uw_genus<-phyloseq::distance(core_genus_A, method =  "unifrac")
-
-#weighted unifrac
-adonis2(dist_core_w_genus ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
-#unweighted unifrac
-adonis2(dist_core_uw_genus ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
-
-
-core_genus_B <- subset_samples(core_genus, Timepoint == "B")
-
-#core asv adonis
-tab_adonis<-data.frame(otu_table(core_genus_B))
-sd_adonis<-data.frame(sample_data(core_genus_B))
-sd_adonis$Treatment <-as.factor(sd_adonis$Treatment)
-sd_adonis$Site <-as.factor(sd_adonis$Site)
-dist_core_w_genus<-phyloseq::distance(core_genus_B, method =  "wunifrac")
-dist_core_uw_genus<-phyloseq::distance(core_genus_B, method =  "unifrac")
-
-#weighted unifrac
-adonis2(dist_core_w_genus ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
-#unweighted unifrac
-adonis2(dist_core_uw_genus ~  Site * Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
-```
-
-
-
-
-Visualization of core microbiome using barplot
-```{r}
-#pull out core genera names
-core_genus_names<-rownames(tax_table(core_genus))
-genus_OTU_table<-data.frame(t(otu_table(bb16S_bac_rarefy_tax_genus)))
-#check orientation of otu table
-rownames(genus_OTU_table)
-#add columns corresponding to core status, % sites, % reads
-genus_OTU_table$Core <- NA 
-for(i in 1:nrow(genus_OTU_table)){
-  if(rownames(genus_OTU_table)[i] %in% core_genus_names == T){
-  genus_OTU_table[i,]$Core <- "Core"
-  } else{
-  genus_OTU_table[i,]$Core <- "NonCore"
-  }
-}
-
-#Prevalence column
-genus_OTU_table$prev <- NA
-for(i in 1:nrow(genus_OTU_table)){
-  genus_OTU_table[i,]$prev<-table(genus_OTU_table[i,(1:69)] > 0)["TRUE"]/ 69}
-
-#proportional abundance
-genus_OTU_table$abund <- NA
-  for(i in 1:nrow(genus_OTU_table)){
-  genus_OTU_table[i,]$abund <- rowSums(genus_OTU_table[i,c(1:69)])/sum(colSums(genus_OTU_table[,c(1:69)]))
-  }
-
-dat<-genus_OTU_table[,c(70:72)]
-dat$otu <- as.factor(rownames(dat))
-dat$otu <- reorder(dat$otu, -dat$prev )
-dat$Phylum <- as.factor(data.frame(tax_table(bb16S_bac_rarefy_tax_genus))$Phylum)
-dat$number <- 1:nrow(dat)
-
-ggplot(dat, aes(x = otu, y=prev, fill = Phylum)) +
-  geom_bar(stat="identity") + scale_fill_manual(values=col_vector) + theme_classic() +
-  theme(axis.title.x=element_blank(),
-        axis.text.x=element_blank(),
-        axis.ticks.x=element_blank()) + ylab("Prevalance") + theme(legend.position = "none")
-#ggsave("../../Writing/Final_Figs/core_prev_owlegend.eps")
-
-ggplot(dat, aes(x = otu, y=abund,  fill = Phylum)) +
-  geom_bar(stat="identity") + scale_fill_manual(values=col_vector) + theme_classic()  + scale_y_reverse() + theme(axis.text.x = element_text(size = 4 , angle = 45, hjust = 1))
-#ggsave("../../Writing/Final_Figs/core_abund.eps")
-
-ggplot(dat, aes(x = otu, y=abund,  fill = Phylum)) +
-  geom_bar(stat="identity") + scale_fill_manual(values=col_vector) + theme_classic()  + scale_y_reverse() + theme(axis.text.x = element_text(size = 4 , angle = 45, hjust = 1)) + theme(legend.position = "none") + ylab("Proportional Abundance") + xlab("OTU ID")
-#ggsave("../../Writing/Final_Figs/core_abund_wolegend.eps")
-
-
-#color by core inclusion
-
-ggplot(dat, aes(x = otu, y=prev, fill = Core)) +
-  geom_bar(stat="identity") + scale_fill_manual(values=c("#88CCEE", "#999933")) + 
-  theme_classic() +
-  theme(axis.title.x=element_blank(),
-        axis.text.x=element_blank(),
-        axis.ticks.x=element_blank()) + ylab("Prevalance") + theme(legend.position = "none")  + theme(axis.text.y = element_text(size=12), axis.title.y = element_text(size = 16))
-ggsave("../../Writing/Final_Figs/core_prev_owlegend_Core.eps")
-
-ggplot(dat, aes(x = otu, y=abund,  fill = Core)) +
-  geom_bar(stat="identity") + scale_fill_manual(values=c("#88CCEE", "#999933")) + 
-  theme_classic()  + scale_y_reverse() + theme(axis.text.x = element_text(size = 4 , angle = 45, hjust = 1, face = "bold"))+ theme( axis.text.x=element_blank(), axis.ticks.x=element_blank())  + theme(axis.text.y = element_text(size=12), axis.title.y = element_text(size = 16))
-ggsave("../../Writing/Final_Figs/core_abund_Core.eps")
-
-ggplot(dat, aes(x = otu, y=abund,  fill = Core)) +
-  geom_bar(stat="identity") +  scale_fill_manual(values=c("#88CCEE", "#999933")) +
-  theme_classic()  + scale_y_reverse() +# theme(axis.text.x = element_text(size = 4 , angle = 45, hjust = 1)) + 
-theme(legend.position = "none") + ylab("Proportional Abundance") + xlab("OTU") + theme(axis.text.x=element_blank(), axis.ticks.x=element_blank()) + theme(axis.text.y = element_text(size=12), axis.title.y = element_text(size = 16))
-ggsave("../../Writing/Final_Figs/core_abund_wolegend_Core.eps")
-
-```
-
-
-
-
-
 
 
 #### Acidophilic bacteria 
 analysis of lactic acid bacteria and acetic acid bacteria at time point 2 (following application)
 ```{r}
-bb16S_bac_ML_A<-subset_samples(bb16S_bac_ML, Timepoint == "A")
+bb16S_bac_rarefy_iter_A<-subset_samples(bb16S_bac_rarefy_iter, Timepoint == "A")
 #ACETO
 #36 taxa
-acetobacter <- subset_taxa(bb16S_bac_ML_A, Family =="Acetobacteraceae")
+acetobacter <- subset_taxa(bb16S_bac_rarefy_iter_A, Family =="Acetobacteraceae")
 acetobacter_glomed<- tax_glom(acetobacter, taxrank = "Family")
 
 
@@ -624,7 +489,7 @@ ggplot(aceto_df, aes(x = Treatment, y = OTU_282, color = Treatment)) + geom_boxp
 
 
 repeat analysis with glommed at genus level
-```{r}
+```{#r}
 acetobacter_glomed_genus<- tax_glom(acetobacter, taxrank = "Genus")
 #anova for all taxa combined
 dat<-data.frame(otu_table(acetobacter_glomed_genus))
@@ -662,7 +527,7 @@ tax_table(acetobacter_glomed_genus)
 ##LACTO
 
 #75 taxa
-lactobac <- subset_taxa(bb16S_bac_ML_A, Order =="Lactobacillales")
+lactobac <- subset_taxa(bb16S_bac_rarefy_iter_A, Order =="Lactobacillales")
 lactobac_glomed <- tax_glom(lactobac, taxrank = "Order")
 
 dat<-data.frame(otu_table(lactobac_glomed))
@@ -691,31 +556,253 @@ for(i in 1:length(names(data.frame(otu_table(lactobac))))){
 pairwise.wilcox.test(lacto_df$OTU_568, lacto_df$Treatment)
 ```
 
-calculate mean abundance of dominant groups
+
+#Core analysis
+
+
+calculate core at genus and asv level using rarefied data
 ```{r}
-phy_ps <- tax_glom(bb16S_bac_rarefy, taxrank = "Phylum")
-#phylum counts
-table(data.frame(tax_table(bb16S_bac_rarefy))$Phylum)
-phy_ps<- transform_sample_counts(phy_ps, function(x) x / sum(x))
-phylum_df<-data.frame(otu_table(phy_ps))
-rownames(tax_table(phy_ps)) == names(phylum_df)
-names(phylum_df) <- tax_table(phy_ps)[,2]
-apply(phylum_df, 2, mean)
-apply(phylum_df, 2, sd)
+#calculate core at genus level
+#325 genera
+bb16S_bac_rarefy_tax_genus<-tax_glom(physeq = bb16S_bac_rarefy_iter, taxrank = "Genus", NArm = F)
+#calculate core
+core_genus<-taxa_core(phyloseq_obj = bb16S_bac_rarefy_tax_genus, treatment = "Site", frequency = 1, abundance_threshold = 0.0001)
+core_genus<-taxa_core(phyloseq_obj = core_genus, frequency = 0.5, abundance_threshold = 0.0001)
+
+otu_genus_core <- data.frame(otu_table(core_genus))
+tax_genus_core <- data.frame(tax_table(core_genus))
+samp_data_genus_core <- data.frame(sample_data(core_genus))
+
+percent_abund<-(otu_genus_core[,]/1100)
+
+write.csv(percent_abund, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/core_genera_percent_abund_12_20_23.csv")
+
+#write.csv(otu_genus_core, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/otu_genus_core.csv")
+#write.csv(tax_genus_core, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/tax_genus_core.csv")
+#write.csv(samp_data_genus_core, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/samp_data_genus_core.csv")
+
+#table taxonomic info of core genera
+table(data.frame(tax_table(core_genus))$Order)
+table(data.frame(tax_table(core_genus))$Genus)
+#percent of genera assigned to core
+15/325
+#percent of reads accounted for by the core genera
+sum(sample_sums(core_genus))/sum(sample_sums(bb16S_bac_rarefy))
 
 
 
-order_ps <- tax_glom(bb16S_bac_rarefy, taxrank = "Order")
-#phylum counts
-sort(table(data.frame(tax_table(bb16S_bac_rarefy))$Order))
-order_ps<- transform_sample_counts(order_ps, function(x) x / sum(x))
-order_df<-data.frame(otu_table(order_ps))
-rownames(tax_table(order_ps)) == names(order_df)
-names(order_df) <- tax_table(order_ps)[,4]
-apply(order_df, 2, mean)
-apply(order_df, 2, sd)
+#extract sequence of core genera and export for tree building 
+core_genus_names<-rownames(tax_table(core_genus))
+core_genera_rep_seq<-seq_df_w_OTUID[seq_df_w_OTUID$OTUID %in% str_split(core_genus_names, pattern = "_", 2, simplify = T)[,2],] 
+taxa_df<-data.frame(taxa)
+core_genera_tax <- taxa_df[rownames(taxa_df) %in% core_genera_rep_seq$Sequence,]
+core_genera_tax$Sequence <- rownames(core_genera_tax)
+merged_tax_core_genera_rep_seq<-full_join(core_genera_tax, core_genera_rep_seq)
+
+#write.csv(merged_tax_core_genera_rep_seq, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/Core_genera_taxa_rep_seq.csv")
+#write.csv(core_genera_rep_seq, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/Core_Genera_Rep_Seqs.csv")
+#write.csv(core_genera_tax, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/Core_Genera_tax.csv")
+```
+
+Core Genus
+```{r}
+#core asv adonis
+tab_adonis<-data.frame(otu_table(core_genus))
+sd_adonis<-data.frame(sample_data(core_genus))
+sd_adonis$Treatment <-as.factor(sd_adonis$Treatment)
+sd_adonis$Site <-as.factor(sd_adonis$Site)
+dist_core_w_genus<-phyloseq::distance(core_genus, method =  "wunifrac")
+dist_core_uw_genus<-phyloseq::distance(core_genus, method =  "unifrac")
+
+#weighted unifrac
+adonis2(dist_core_w_genus ~ Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
+#unweighted unifrac
+adonis2(dist_core_uw_genus ~ Treatment * Timepoint, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
+
+#pairwise permanova
+pairwiseAdonis::pairwise.adonis2(dist_core_w_genus ~ Treatment, strata = "Site", data = sd_adonis, nperm = 1000)
+pairwiseAdonis::pairwise.adonis2(dist_core_uw_genus ~ Treatment, strata = "Site", data = sd_adonis, nperm = 1000)
+
+#ordinations
+#weighted Unifrac
+ord_nmds<-ordinate(physeq = core_genus, method = "NMDS", distance = "wunifrac")
+ord_nmds$stress
+plot_ordination(physeq = core_genus, ordination = ord_nmds, type = "Samples", color = "Site", shape = "Treatment" ) + theme_classic() + ggtitle("Core Genera Weighted Unifrac NMDS") + theme(plot.title = element_text(hjust = 0.5, size = 18)) + geom_point(size = 3)  + theme(axis.text = element_text(size = 14), axis.title=element_text(size=14))
+ggsave("../../Writing/Final_Figs/December2023/CoreGenus_Weighted_Unifrac_NMDS.eps")
+#strongest grouping by Site. Time point also has a smaller effect, but these groupings are more clear than in the CAP ordination. There are several outlier samples that ordinate far to the right on the NMDS1 axis. 
+
+#unweighted Unifrac
+ord_nmds<-ordinate(physeq = core_genus, method = "NMDS", distance = "unifrac")
+ord_nmds$stress
+plot_ordination(physeq = core_genus, ordination = ord_nmds, type = "Samples", color = "Site", shape = "Treatment" ) + theme_classic() + ggtitle("Core Genera Unweighted Unifrac NMDS") + theme(plot.title = element_text(hjust = 0.5, size = 18)) + geom_point(size = 3) + theme(axis.text = element_text(size = 14), axis.title=element_text(size=14))
+ggsave("../../Writing/Final_Figs/December2023/CoreGenus_Unweighted_Unifrac_NMDS.eps")
+```
+
+
+Core genus at time points 1 and 2 
+```{r}
+#after treatment
+core_genus_A <- subset_samples(core_genus, Timepoint == "A")
+
+#core asv adonis
+tab_adonis<-data.frame(otu_table(core_genus_A))
+sd_adonis<-data.frame(sample_data(core_genus_A))
+sd_adonis$Treatment <-as.factor(sd_adonis$Treatment)
+sd_adonis$Site <-as.factor(sd_adonis$Site)
+dist_core_w_genus<-phyloseq::distance(core_genus_A, method =  "wunifrac")
+dist_core_uw_genus<-phyloseq::distance(core_genus_A, method =  "unifrac")
+
+#weighted unifrac
+adonis2(dist_core_w_genus ~ Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
+#unweighted unifrac
+adonis2(dist_core_uw_genus ~ Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
+
+pairwiseAdonis::pairwise.adonis2(dist_core_uw_genus ~ Treatment, strata = "Site", data = sd_adonis, nperm = 1000)
+pairwiseAdonis::pairwise.adonis2(dist_core_w_genus ~ Treatment, strata = "Site", data = sd_adonis, nperm = 1000)
+
+
+
+#before treatment
+
+core_genus_B <- subset_samples(core_genus, Timepoint == "B")
+
+#core asv adonis
+tab_adonis<-data.frame(otu_table(core_genus_B))
+sd_adonis<-data.frame(sample_data(core_genus_B))
+sd_adonis$Treatment <-as.factor(sd_adonis$Treatment)
+sd_adonis$Site <-as.factor(sd_adonis$Site)
+dist_core_w_genus<-phyloseq::distance(core_genus_B, method =  "wunifrac")
+dist_core_uw_genus<-phyloseq::distance(core_genus_B, method =  "unifrac")
+
+#weighted unifrac
+adonis2(dist_core_w_genus ~  Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
+#unweighted unifrac
+adonis2(dist_core_uw_genus ~ Treatment, data= sd_adonis, strata = sd_adonis$Site, permutations = 1000)
+#pairwiseAdonis::pairwise.adonis2(dist_core_w_genus ~ Treatment, strata = "Site", data = sd_adonis, nperm = 1000)
+#pairwiseAdonis::pairwise.adonis2(dist_core_w_genus ~ Treatment, strata = "Site", data = sd_adonis, nperm = 1000)
 
 ```
+
+
+
+
+Visualization of core microbiome using barplot
+```{r}
+#pull out core genera names
+core_genus_names<-rownames(tax_table(core_genus))
+genus_OTU_table<-data.frame(t(otu_table(bb16S_bac_rarefy_tax_genus)))
+#check orientation of otu table
+rownames(genus_OTU_table)
+#add columns corresponding to core status, % sites, % reads
+genus_OTU_table$Core <- NA 
+for(i in 1:nrow(genus_OTU_table)){
+  if(rownames(genus_OTU_table)[i] %in% core_genus_names == T){
+  genus_OTU_table[i,]$Core <- "Core"
+  } else{
+  genus_OTU_table[i,]$Core <- "NonCore"
+  }
+}
+
+#Prevalence column
+genus_OTU_table$prev <- NA
+for(i in 1:nrow(genus_OTU_table)){
+  genus_OTU_table[i,]$prev<-table(genus_OTU_table[i,(1:72)] > 0)["TRUE"]/ 72}
+
+#proportional abundance
+genus_OTU_table$abund <- NA
+  for(i in 1:nrow(genus_OTU_table)){
+  genus_OTU_table[i,]$abund <- rowSums(genus_OTU_table[i,c(1:72)])/sum(colSums(genus_OTU_table[,c(1:72)]))
+  }
+
+dat<-genus_OTU_table[,c(73:75)]
+dat$otu <- as.factor(rownames(dat))
+dat$otu <- reorder(dat$otu, -dat$prev )
+dat$Phylum <- as.factor(data.frame(tax_table(bb16S_bac_rarefy_tax_genus))$Phylum)
+dat$number <- 1:nrow(dat)
+
+ggplot(dat, aes(x = otu, y=prev, fill = Phylum)) +
+  geom_bar(stat="identity") + scale_fill_manual(values=col_vector) + theme_classic() +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()) + ylab("Prevalance") + theme(legend.position = "none")
+#ggsave("../../Writing/Final_Figs/core_prev_owlegend.eps")
+
+ggplot(dat, aes(x = otu, y=abund,  fill = Phylum)) +
+  geom_bar(stat="identity") + scale_fill_manual(values=col_vector) + theme_classic()  + scale_y_reverse() + theme(axis.text.x = element_text(size = 4 , angle = 45, hjust = 1))
+#ggsave("../../Writing/Final_Figs/core_abund.eps")
+
+ggplot(dat, aes(x = otu, y=abund,  fill = Phylum)) +
+  geom_bar(stat="identity") + scale_fill_manual(values=col_vector) + theme_classic()  + scale_y_reverse() + theme(axis.text.x = element_text(size = 4 , angle = 45, hjust = 1)) + theme(legend.position = "none") + ylab("Proportional Abundance") + xlab("OTU ID")
+#ggsave("../../Writing/Final_Figs/core_abund_wolegend.eps")
+
+
+#color by core inclusion
+
+ggplot(dat, aes(x = otu, y=prev, fill = Core)) +
+  geom_bar(stat="identity") + scale_fill_manual(values=c("#88CCEE", "#999933")) + 
+  theme_classic() +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank()) + ylab("Prevalance") + theme(legend.position = "none")  + theme(axis.text.y = element_text(size=12), axis.title.y = element_text(size = 16))
+ggsave("../../Writing/Final_Figs/December2023/core_prev_owlegend_Core.eps")
+
+ggplot(dat, aes(x = otu, y=abund,  fill = Core)) +
+  geom_bar(stat="identity") + scale_fill_manual(values=c("#88CCEE", "#999933")) + 
+  theme_classic()  + scale_y_reverse() + theme(axis.text.x = element_text(size = 4 , angle = 45, hjust = 1, face = "bold"))+ theme( axis.text.x=element_blank(), axis.ticks.x=element_blank())  + theme(axis.text.y = element_text(size=12), axis.title.y = element_text(size = 16))
+ggsave("../../Writing/Final_Figs/December2023/core_abund_Core.eps")
+
+ggplot(dat, aes(x = otu, y=abund,  fill = Core)) +
+  geom_bar(stat="identity") +  scale_fill_manual(values=c("#88CCEE", "#999933")) +
+  theme_classic()  + scale_y_reverse() +# theme(axis.text.x = element_text(size = 4 , angle = 45, hjust = 1)) + 
+theme(legend.position = "none") + ylab("Proportional Abundance") + xlab("OTU") + theme(axis.text.x=element_blank(), axis.ticks.x=element_blank()) + theme(axis.text.y = element_text(size=12), axis.title.y = element_text(size = 16))
+ggsave("../../Writing/Final_Figs/December2023/core_abund_wolegend_Core.eps")
+
+```
+
+
+
+Visualization of core microbiome using heatmaps and phylogenetic trees
+
+```{r}
+core_genus
+#plot_tree(core_genus, color = "Treatment", shape = "Site", size = "abundance", label.tips = "taxa_names")
+plot_tree(core_genus, color = "Treatment", shape = "Site", label.tips = "taxa_names")
+View(tax_table(core_genus))
+write.csv(tax_table(core_genus), "/Users/gordoncuster/Desktop/Git_projects/BeeBread/Writing/Final_Figs/December2023/core_tip_labels.csv")
+ggsave("../../Writing/Final_Figs/December2023/phylo_tree_core_genus.eps")
+
+```
+
+Heatmap
+
+colors https://journals.asm.org/doi/10.1128/mra.00795-22 
+```{r}
+sample_data(core_genus)$timepoint_sample <- paste(sample_data(core_genus)$Timepoint, sample_names(core_genus), sep = "_")
+
+sample_data(core_genus)$Timepoint2 <- factor(sample_data(core_genus)$Timepoint, levels = c(
+  "B", "A"), ordered = TRUE)
+
+
+plot_heatmap(core_genus, sample.order = "Timepoint", low = "#F0E442", high = "#D55E00", na.value = "White") + theme (axis.text.x = element_text(size=7))
+
+ggsave("../../Writing/Final_Figs/December2023/heatmap_core_genus.eps")
+
+```
+
+Venn diagram
+```{r}
+ps_venn(bb16S_bac_rarefy_iter, group = "Treatment", fraction = 0.01, weight = F, plot = T)
+ggsave("../../Writing/Final_Figs/December2023/venn_treatment.eps")
+
+ps_venn(bb16S_bac_rarefy_iter, group = "Timepoint", fraction = 0.01, weight = F, plot = T)
+ggsave("../../Writing/Final_Figs/December2023/venn_timepoint.eps")
+
+```
+
+
+
+
+
 
 
 https://stackoverflow.com/questions/61796484/stacked-bar-chart-with-count-above-and-below-x-axis
