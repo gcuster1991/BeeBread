@@ -783,7 +783,7 @@ sample_data(core_genus)$Timepoint2 <- factor(sample_data(core_genus)$Timepoint, 
   "B", "A"), ordered = TRUE)
 
 
-plot_heatmap(core_genus, sample.order = "Timepoint", low = "#F0E442", high = "#D55E00", na.value = "White") + theme (axis.text.x = element_text(size=7))
+plot_heatmap(core_genus, sample.order = "Timepoint", low = "#F0E442", high = "#D55E00", na.value = "White", taxa.order = c("OTU_33", "OTU_9", "OTU_8", "OTU_18", "OTU_35", "OTU_55", "OTU_62", "OTU_97", "OTU_5","OTU_99","OTU_117", "OTU_37", "OTU_40",  "OTU_82","OTU_103")) + theme (axis.text.x = element_text(size=7))
 
 ggsave("../../Writing/Final_Figs/December2023/heatmap_core_genus.eps")
 
@@ -791,11 +791,15 @@ ggsave("../../Writing/Final_Figs/December2023/heatmap_core_genus.eps")
 
 Venn diagram
 ```{r}
+setEPS()
+postscript("/Users/gordoncuster/Desktop/Git_projects/BeeBread/Writing/Final_Figs/December2023/venn_treatment.eps")
 ps_venn(bb16S_bac_rarefy_iter, group = "Treatment", fraction = 0.01, weight = F, plot = T)
-ggsave("../../Writing/Final_Figs/December2023/venn_treatment.eps")
+dev.off()
 
+setEPS()
+postscript("/Users/gordoncuster/Desktop/Git_projects/BeeBread/Writing/Final_Figs/December2023/venn_timepoint.eps")
 ps_venn(bb16S_bac_rarefy_iter, group = "Timepoint", fraction = 0.01, weight = F, plot = T)
-ggsave("../../Writing/Final_Figs/December2023/venn_timepoint.eps")
+dev.off()
 
 ```
 
