@@ -587,7 +587,7 @@ table(data.frame(tax_table(core_genus))$Genus)
 #percent of genera assigned to core
 15/325
 #percent of reads accounted for by the core genera
-sum(sample_sums(core_genus))/sum(sample_sums(bb16S_bac_rarefy))
+#sum(sample_sums(core_genus))/sum(sample_sums(bb16S_bac_rarefy))
 
 
 
@@ -781,12 +781,16 @@ sample_data(core_genus)$timepoint_sample <- paste(sample_data(core_genus)$Timepo
 
 sample_data(core_genus)$Timepoint2 <- factor(sample_data(core_genus)$Timepoint, levels = c(
   "B", "A"), ordered = TRUE)
+sample_names_Befor_After <- sample_data(core_genus)$X
+test_name <- c("Bel_CF3045_B", "Bel_CF3045_A", "Bel_CF3047_B", "Bel_CF3047_A", "Bel_CON3037_B", "Bel_CON3037_A","Bel_CON3039_B", "Bel_CON3039_A", "Bel_IPM3042_B", "Bel_IPM3042_A", "Bel_IPM3044_B", "Bel_IPM3044_A", "Ber_CF2006_B", "Ber_CF2006_A", "Ber_CF2007_B", "Ber_CF2007_A", "Ber_CON2010_B", "Ber_CON2010_A", "Ber_CON2011_Be2", "Ber_CON2011_A", "Ber_IPM2001_B", "Ber_IPM2001_A", "Ber_IPM2002_B", "Ber_IPM2002_A", "Dal_CF1051_B", "Dal_CF1051_A", "Dal_CF1052_B", "Dal_CF1052_A", "Dal_CON1057_B", "Dal_CON1057_A", "Dal_CON1058_B", "Dal_CON1058_A", "Dal_IPM1054_B", "Dal_IPM1054_A", "Dal_IPM1055_B", "Dal_IPM1055_A", "Sla_CF2065_B", "Sla_CF2065_A", "Sla_CF2066_B", "Sla_CF2066_A", "Sla_CON2061_B", "Sla_CON2061_A", "Sla_CON2063_B", "Sla_CON2063_A", "Sla_IPM2070_B", "Sla_IPM2070_A", "Sla_IPM2071_B", "Sla_IPM2071_A", "Spr_CF3013_B", "Spr_CF3013_A", "Spr_CF3016_B", "Spr_CF3016_A", "Spr_CON3017_B", "Spr_CON3017_A", "Spr_CON3019_Be2", "Spr_CON3019_A", "Spr_IPM3023_B", "Spr_IPM3023_A", "Spr_IPM3024_B", "Spr_IPM3024_A", "Sum_CF4005_B", "Sum_CF4005_A", "Sum_CF4006_B", "Sum_CF4006_A", "Sum_CON4010_B", "Sum_CON4010_A", "Sum_CON4011_B", "Sum_CON4011_A", "Sum_IPM4001_B", "Sum_IPM4001_A", "Sum_IPM4002_B", "Sum_IPM4002_A")
 
 
-plot_heatmap(core_genus, sample.order = "Timepoint", low = "#F0E442", high = "#D55E00", na.value = "White", taxa.order = c("OTU_33", "OTU_9", "OTU_8", "OTU_18", "OTU_35", "OTU_55", "OTU_62", "OTU_97", "OTU_5","OTU_99","OTU_117", "OTU_37", "OTU_40",  "OTU_82","OTU_103")) + theme (axis.text.x = element_text(size=7))
+plot_heatmap(core_genus, sample.order = test_name, low = "#F0E442", high = "#D55E00", na.value = "White", taxa.order = c("OTU_33", "OTU_9", "OTU_8", "OTU_18", "OTU_35", "OTU_55", "OTU_62", "OTU_97", "OTU_5","OTU_99","OTU_117", "OTU_37", "OTU_40",  "OTU_82","OTU_103")) + theme (axis.text.x = element_text(size=7))
 
-ggsave("../../Writing/Final_Figs/December2023/heatmap_core_genus.eps")
 
+ggsave("../../Writing/Final_Figs/December2023/heatmap_core_genus_SampleNames_B_A.eps")
+
+sample_data(core_genus)
 ```
 
 Venn diagram
