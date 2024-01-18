@@ -169,8 +169,18 @@ sf2c <-plot_richness(bb16S_bac_rarefy_iter, x = "Site", measures = c("Shannon", 
 sf2d <-plot_richness(bb16S_bac_rarefy_iter, x = "Timepoint", measures = c("Shannon", "Observed", "Chao1"), color = "Treatment") + geom_boxplot() + ggtitle("Treatment by Sampling Time") + theme_classic() + ylab("") + xlab("Sampling Timepoint")  +theme(axis.text=element_text(size=12, angle = 45, hjust =0.75),
         axis.title=element_text(size=14))
 
+sf2a
+sf2b
+sf2c
+sf2d
+
 sf2 <- grid.arrange(sf2a, sf2b, sf2c, sf2d)
 plot(sf2)
+
+#extract colors for future plots.
+testBuild<-ggplot_build(plot = sf2d)
+unique(testBuild$data[[1]]["colour"])
+
 ```
 
 Calculate alpha diversity metrics
@@ -182,6 +192,44 @@ richness_BB16S_bac$Site<-sample_data(bb16S_bac_rarefy_iter)$Site
 richness_BB16S_bac$Timepoint<-sample_data(bb16S_bac_rarefy_iter)$Timepoint
 richness_BB16S_bac$Treatment<-sample_data(bb16S_bac_rarefy_iter)$Treatment
 richness_BB16S_bac$Treatment_Timepoint<-sample_data(bb16S_bac_rarefy_iter)$Treatment_Timepoint
+
+
+index <- c("B", "A")
+values <- c("Before", "After")
+richness_BB16S_bac$Timepoint <- as.factor(values[match(richness_BB16S_bac$Timepoint, index)])
+
+richness_BB16S_bac$Timepoint <- factor(richness_BB16S_bac$Timepoint, levels = c("Before", "After"), ordered = T)
+
+shannon<-ggplot(data = richness_BB16S_bac) + geom_boxplot(aes(x = Timepoint, y = Shannon, fill = Treatment)) + theme_classic() + ggtitle("Shannon Diversity") + theme(plot.title = element_text(hjust = 0.5)) + theme(legend.position="none") + theme(axis.text=element_text(size=12, angle = 45, hjust =0.75), axis.title=element_text(size=14))
+
+chao<-ggplot(data = richness_BB16S_bac) + geom_boxplot(aes(x = Timepoint, y = Chao1, fill = Treatment)) + theme_classic() + ggtitle("Chao1") + theme(plot.title = element_text(hjust = 0.5)) + theme(legend.position="none")+ theme(axis.text=element_text(size=12, angle = 45, hjust =0.75), axis.title=element_text(size=14))
+
+observed<-ggplot(data = richness_BB16S_bac) + geom_boxplot(aes(x = Timepoint, y = Observed, fill = Treatment)) + theme_classic() + ggtitle("Richness") + theme(plot.title = element_text(hjust = 0.5)) +theme(legend.position="none") +  theme(axis.text=element_text(size=12, angle = 45, hjust =0.75), axis.title=element_text(size=14))
+
+observed_legend<-ggplot(data = richness_BB16S_bac) + geom_boxplot(aes(x = Timepoint, y = Observed, fill = Treatment)) + theme_classic() + ggtitle("Richness") + theme(plot.title = element_text(hjust = 0.5)) +  theme(axis.text=element_text(size=12, angle = 45, hjust =0.75), axis.title=element_text(size=14))
+
+t<-arrangeGrob(shannon, chao, observed, ncol =3)
+plot(t)
+ggsave("/Users/gordoncuster/Desktop/Git_projects/BeeBread/Writing/Final_Figs/December2023/alphadiv.eps")
+ 
+setEPS()
+postscript("/Users/gordoncuster/Desktop/Git_projects/BeeBread/Writing/Final_Figs/December2023/alphadiv.eps")
+plot(t)
+dev.off()
+
+
+legend <- cowplot::get_legend(observed_legend)
+
+grid.newpage()
+grid.draw(legend)
+
+setEPS()
+postscript("/Users/gordoncuster/Desktop/Git_projects/BeeBread/Writing/Final_Figs/December2023/alphadiv_legend.eps")
+plot(legend)
+dev.off()
+
+
+
 ```
 
 Tests of Shannon diversity 
@@ -250,6 +298,9 @@ lmerTest::rand(mod)
 shapiro.test(resid(mod))
 qqnorm(resid(mod))
 hist(resid(mod))
+
+library(emmeans)
+emmeans(mod, list(pairwise ~ Treatment * Timepoint), adjust = "tukey")
 ```
 Tests of Observed - unique taxa in a sample. 
 ```{r}
