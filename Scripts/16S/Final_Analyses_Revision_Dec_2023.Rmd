@@ -125,6 +125,7 @@ otu_table(bb16S_bac_rarefy_iter) <-  otu_table(bb16S_bac_rarefy_iter_tab, taxa_a
 bb16S_bac_rarefy_iter <- prune_taxa(taxa_sums(bb16S_bac_rarefy_iter) > 0, bb16S_bac_rarefy_iter) 
 #left with 941 taxa and 72 samples
 
+sample_sums(bb16S_bac_rarefy_iter)
 #compare two permuted otu table to ensure it worked. 
 View(otu_table(ps_wo_control)[1:10, 1:10])
 View(otu_table(bb16S_bac_rarefy_iter)[1:10, 1:10])
@@ -208,25 +209,25 @@ observed<-ggplot(data = richness_BB16S_bac) + geom_boxplot(aes(x = Timepoint, y 
 
 observed_legend<-ggplot(data = richness_BB16S_bac) + geom_boxplot(aes(x = Timepoint, y = Observed, fill = Treatment)) + theme_classic() + ggtitle("Richness") + theme(plot.title = element_text(hjust = 0.5)) +  theme(axis.text=element_text(size=12, angle = 45, hjust =0.75), axis.title=element_text(size=14))
 
-t<-arrangeGrob(shannon, chao, observed, ncol =3)
-plot(t)
-ggsave("/Users/gordoncuster/Desktop/Git_projects/BeeBread/Writing/Final_Figs/December2023/alphadiv.eps")
+#t<-arrangeGrob(shannon, chao, observed, ncol =3)
+#plot(t)
+#ggsave("/Users/gordoncuster/Desktop/Git_projects/BeeBread/Writing/Final_Figs/December2023/alphadiv.eps")
  
-setEPS()
-postscript("/Users/gordoncuster/Desktop/Git_projects/BeeBread/Writing/Final_Figs/December2023/alphadiv.eps")
-plot(t)
-dev.off()
+#setEPS()
+#postscript("/Users/gordoncuster/Desktop/Git_projects/BeeBread/Writing/Final_Figs/December2023/alphadiv.eps")
+#plot(t)
+#dev.off()
 
 
-legend <- cowplot::get_legend(observed_legend)
+#legend <- cowplot::get_legend(observed_legend)
 
-grid.newpage()
-grid.draw(legend)
+#grid.newpage()
+#grid.draw(legend)
 
-setEPS()
-postscript("/Users/gordoncuster/Desktop/Git_projects/BeeBread/Writing/Final_Figs/December2023/alphadiv_legend.eps")
-plot(legend)
-dev.off()
+#setEPS()
+#postscript("/Users/gordoncuster/Desktop/Git_projects/BeeBread/Writing/Final_Figs/December2023/alphadiv_legend.eps")
+#plot(legend)
+#dev.off()
 
 
 
@@ -417,6 +418,8 @@ plot_ordination(physeq = bb16S_bac_iter_A, ordination = ord_nmds, type = "Sample
 ggsave("../../Writing/Final_Figs/December2023/Time2_Unweighted_Unifrac_NMDS.pdf")
 
 ```
+
+
 ```{r}
 #create super long color vector
 col_vector <- c("#000000", "#FFFF00", "#1CE6FF", "#FF34FF", "#FF4A46", "#008941", "#006FA6", "#A30059",
@@ -469,14 +472,14 @@ sort(table(data.frame(tax_table(bb16S_bac_rarefy_iter))$Family), decreasing = TR
 length(unique(data.frame(tax_table(bb16S_bac_rarefy_iter))$Family))
 
 plot_bar(subset_samples(bb16S_bac_rarefy_iter, Timepoint == "A"), fill = "Phylum")  + scale_fill_manual(values = col_vector) + geom_bar(stat = "identity")+ coord_flip() + guides(fill=guide_legend(ncol=2))
-ggsave("../../Writing/Final_Figs/December2023/taxabarAfter_12_25_23.eps")
-ggsave("../../Writing/Final_Figs/December2023/taxabarAfter_12_25_23.pdf")
-ggsave("../../Writing/Final_Figs/December2023/taxabarAfter_12_25_23.jpeg")
+#gsave("../../Writing/Final_Figs/December2023/taxabarAfter_12_25_23.eps")
+#ggsave("../../Writing/Final_Figs/December2023/taxabarAfter_12_25_23.pdf")
+#ggsave("../../Writing/Final_Figs/December2023/taxabarAfter_12_25_23.jpeg")
 
 plot_bar(subset_samples(bb16S_bac_rarefy_iter, Timepoint == "B"), fill = "Phylum")  + scale_fill_manual(values = col_vector) + geom_bar(stat = "identity")+ coord_flip() + guides(fill=guide_legend(ncol=2))
-ggsave("../../Writing/Final_Figs/December2023/taxabarBefore_12_25_23.eps")
-ggsave("../../Writing/Final_Figs/December2023/taxabarBefore_12_25_23.pdf")
-ggsave("../../Writing/Final_Figs/December2023/taxabarBefore_12_25_23.jpeg")
+#ggsave("../../Writing/Final_Figs/December2023/taxabarBefore_12_25_23.eps")
+#ggsave("../../Writing/Final_Figs/December2023/taxabarBefore_12_25_23.pdf")
+#ggsave("../../Writing/Final_Figs/December2023/taxabarBefore_12_25_23.jpeg")
 ```
 
 
@@ -529,6 +532,7 @@ for(i in 1:length(names(data.frame(otu_table(acetobacter))))){
 
 pairwise.wilcox.test(aceto_df$OTU_122, aceto_df$Treatment)
 ggplot(aceto_df, aes(x = Treatment, y = OTU_122, color = Treatment)) + geom_boxplot()  + theme_classic()  + theme(axis.text = element_text(size = 14), axis.title=element_text(size=14))
+ggsave("/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/Final_Figs/OTU_122_After_Treatment.eps")
 
 pairwise.wilcox.test(aceto_df$OTU_282, aceto_df$Treatment)
 ggplot(aceto_df, aes(x = Treatment, y = OTU_282, color = Treatment)) + geom_boxplot()  + theme_classic()  + theme(axis.text = element_text(size = 14), axis.title=element_text(size=14))
@@ -626,7 +630,7 @@ samp_data_genus_core <- data.frame(sample_data(core_genus))
 
 percent_abund<-(otu_genus_core[,]/1100)
 
-write.csv(percent_abund, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/core_genera_percent_abund_12_20_23.csv")
+#write.csv(percent_abund, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/core_genera_percent_abund_12_20_23.csv")
 
 #write.csv(otu_genus_core, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/otu_genus_core.csv")
 #write.csv(tax_genus_core, "/Users/gordoncuster/Desktop/Git_Projects/BeeBread/Writing/tax_genus_core.csv")
@@ -819,8 +823,8 @@ core_genus
 #plot_tree(core_genus, color = "Treatment", shape = "Site", size = "abundance", label.tips = "taxa_names")
 plot_tree(core_genus, color = "Treatment", shape = "Site", label.tips = "taxa_names")
 View(tax_table(core_genus))
-write.csv(tax_table(core_genus), "/Users/gordoncuster/Desktop/Git_projects/BeeBread/Writing/Final_Figs/December2023/core_tip_labels.csv")
-ggsave("../../Writing/Final_Figs/December2023/phylo_tree_core_genus.eps")
+#write.csv(tax_table(core_genus), "/Users/gordoncuster/Desktop/Git_projects/BeeBread/Writing/Final_Figs/December2023/core_tip_labels.csv")
+#ggsave("../../Writing/Final_Figs/December2023/phylo_tree_core_genus.eps")
 
 ```
 
